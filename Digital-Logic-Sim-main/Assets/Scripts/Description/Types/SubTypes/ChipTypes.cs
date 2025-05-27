@@ -4,6 +4,10 @@ namespace DLS.Description
 	{
 		Custom,
 
+		// ---- Bulit in computer chips ----
+		EdgeFunction,
+		ColorInterpolationMath,
+
 		// ---- Basic Chips ----
 		Nand,
 		TriStateBuffer,

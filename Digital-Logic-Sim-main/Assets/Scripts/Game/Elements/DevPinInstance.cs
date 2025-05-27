@@ -91,17 +91,23 @@ namespace DLS.Game
 		public ulong GetStateDecimalDisplayValue()
 		{
 			ulong rawValue = PinState.GetBitStates(Pin.State);
-			ulong displayValue = (ulong)rawValue;
+			
+			// Mask out disconnected bits - only show connected bits as their actual state
+			// Disconnected bits should be treated as 0 for display purposes
+			ulong connectedBitsMask = PinState.GetBitStates(Pin.State);
+			ulong maskedValue = rawValue & connectedBitsMask;
+			
+			ulong displayValue = maskedValue;
 
 			// Only use two's complement if specifically in SignedDecimal mode
 			if (pinValueDisplayMode == PinValueDisplayMode.SignedDecimal)
 			{
-				displayValue = Maths.TwosComplement(rawValue, (ulong)BitCount);
+				displayValue = Maths.TwosComplement(maskedValue, (ulong)BitCount);
 			}
 			// For UnsignedDecimal or other modes, use the raw value directly
 			else
 			{
-				displayValue = (ulong)rawValue;
+				displayValue = maskedValue;
 			}
 
 			return displayValue;

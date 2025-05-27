@@ -1,33 +1,30 @@
 using System;
 using DLS.Description;
+using DLS.Simulation;
 
 namespace DLS.Simulation
 {
     public static class FreezeChip
-    {
-        // Index of the freeze pin in the input pins array
-        public const int FreezePinIndex = 0;
-        
+    {     
         // Check if a chip is frozen (freeze pin is high)
         public static bool IsChipFrozen(SimChip chip)
         {
-            // can't be frozen if the chip doesn't have a freeze pin (yeah I know it doesn't work for auto freeze so I have other code)
-            if (!HasFreezePin(chip))
-                return false;
-                
-            // is pin in high state
-            return PinState.FirstBitHigh(chip.InputPins[FreezePinIndex].State);
-        }
-        
-        // func to check if this has freeze pin (really simple)
-        public static bool HasFreezePin(SimChip chip)
-        {
-            // I forgot
-            return chip.InternalState != null && 
-                   chip.InternalState.Length > 0 && 
-                   (chip.InternalState[0] & FreezeFlagMask) != 0;
-        }
-        
+            // Go through every pin and check if it's pin id is -1 (freeze pin)
+            foreach (var pin in chip.InputPins)
+            {
+                if (pin.ID == -1)
+                {
+                    // Get pin state, and if it's state is on, then return true
+                    if (pin.State == 1)
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            // If no freeze pin found or freeze pin is off, return false
+            return false;
+        }      
         // yeah I have no clue, had to ask chatgpt to write this
         private const uint FreezeFlagMask = 0x80000000; // Using the highest bit as the freeze flag
         

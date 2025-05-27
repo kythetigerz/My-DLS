@@ -9,6 +9,9 @@ namespace DLS.Description
 
 		static readonly Dictionary<ChipType, string> Names = new()
 		{
+			// ---- Bulit in computer chips ----
+			{ ChipType.EdgeFunction, "EDGE FUNCTION " },
+			{ ChipType.ColorInterpolationMath, "Color Interpolation Math" },
 			// ---- Basic Chips ----
 			{ ChipType.Nand, "NAND" },
 			{ ChipType.Clock, "CLOCK" },

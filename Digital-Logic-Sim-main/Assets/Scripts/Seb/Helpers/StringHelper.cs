@@ -48,7 +48,7 @@ namespace Seb.Helpers
 			return string.Join(" ", grouped);
 		}
 
-		public static int CreateIntegerStringNonAlloc(char[] charArray, ulong value)
+		public static int CreateIntegerStringNonAlloc(char[] charArray, long value)
 		{
 			// Check if the char array is large enough
 			if (charArray == null || charArray.Length == 0)
@@ -56,34 +56,60 @@ namespace Seb.Helpers
 				return 0;
 			}
 			
-			// We don't handle negative values here - this is for unsigned display
-			// The DevPinInstance.GetStateDecimalDisplayValue() method handles signed/unsigned conversion
-			//bool isNegative = false;
+			// Handle negative values
+			bool isNegative = value < 0;
+			ulong absValue = isNegative ? (ulong)(-value) : (ulong)value;
 			
 			// Special case for zero
-			if (value == 0)
+			if (absValue == 0)
 			{
 				charArray[0] = '0';
 				return 1;
 			}
 			
-			// For ulong, we always treat it as unsigned (no negative sign)
-			string valueStr = value.ToString();
-			int digitCount = valueStr.Length;
+			// Convert digits manually without string allocation
+			int digitCount = 0;
+			ulong tempValue = absValue;
+			
+			// Count digits
+			while (tempValue > 0)
+			{
+				tempValue /= 10;
+				digitCount++;
+			}
+			
+			int totalLength = isNegative ? digitCount + 1 : digitCount;
 			
 			// Make sure the array is large enough
-			if (charArray.Length < digitCount)
+			if (charArray.Length < totalLength)
 			{
 				return 0;
 			}
 			
-			// Copy the digits from the string representation
-			for (int i = 0; i < digitCount; i++)
+			int startIndex = 0;
+			
+			// Add minus sign if negative
+			if (isNegative)
 			{
-				charArray[i] = valueStr[i];
+				charArray[0] = '-';
+				startIndex = 1;
 			}
 			
-			return digitCount;
+			// Convert digits from right to left
+			tempValue = absValue;
+			for (int i = digitCount - 1; i >= 0; i--)
+			{
+				charArray[startIndex + i] = (char)('0' + (tempValue % 10));
+				tempValue /= 10;
+			}
+			
+			return totalLength;
+		}
+
+		// Keep the original unsigned version for backward compatibility
+		public static int CreateIntegerStringNonAlloc(char[] charArray, ulong value)
+		{
+			return CreateIntegerStringNonAlloc(charArray, (long)value);
 		}
 
 		public static int CreateHexStringNonAlloc(char[] charArray, ulong value, bool upperCase = true)

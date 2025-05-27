@@ -78,6 +78,9 @@ namespace DLS.Game
 				CreateDisplayDot(),
 				CreateDisplayLED(),
 				CreateDisplay1080RGB8bit(),
+				// ---- Built in items for computer----
+				CreateEdgeFunction(),
+				CreateColorInterpolationMath(),
 				// ---- Bus ----
 				CreateBus(PinBitCount.Bit1),
 				CreateBusTerminus(PinBitCount.Bit1),
@@ -361,6 +364,72 @@ namespace DLS.Game
 			};
 
 			return CreateBuiltinChipDescription(ChipType.DisplayDot, size, col, inputPins, outputPins, displays, NameDisplayLocation.Hidden);
+		}
+
+		static ChipDescription CreateEdgeFunction()
+		{
+			Color col = new Color(0.992f, 0.667f, 0.071f); // #FDAA12
+			
+			PinDescription[] inputPins =
+			{
+				CreatePinDescription("BY", 5, PinBitCount.Bit4),
+				CreatePinDescription("BX", 4, PinBitCount.Bit4),
+				CreatePinDescription("AY", 3, PinBitCount.Bit4),
+				CreatePinDescription("AX", 2, PinBitCount.Bit4),
+				CreatePinDescription("Y", 1, PinBitCount.Bit4),
+				CreatePinDescription("X", 0, PinBitCount.Bit4),
+			};
+			
+			PinDescription[] outputPins = { CreatePinDescription("OUT", 6, PinBitCount.Bit16) };
+			
+			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + .75f);
+			
+			return CreateBuiltinChipDescription(ChipType.EdgeFunction, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateColorInterpolationMath()
+		{
+			Color col = new Color(0.615f, 0.807f, 0.074f); //rgb(157, 207, 19)
+			//ABC = (Bx - Ax) * (Cy - Ay) - (By - Ay) * (Cx - Ax)
+			//weightA = BCP / ABC;
+			//weightB = CAP / ABC;
+			//weightC = ABP / ABC;
+			//r = colourA.r * weightA + colourB.r * weightB + colourC.r * weightC;
+			//g = colourA.g * weightA + colourB.g * weightB + colourC.g * weightC;
+			//b = colourA.b * weightA + colourB.b * weightB + colourC.b * weightC;
+
+
+			PinDescription[] inputPins =
+			{
+				CreatePinDescription("colorCB", 18, PinBitCount.Bit4),
+				CreatePinDescription("colorCG", 17, PinBitCount.Bit4),
+				CreatePinDescription("colorCR", 16, PinBitCount.Bit4),
+				CreatePinDescription("colorBB", 15, PinBitCount.Bit4),
+				CreatePinDescription("colorBG", 14, PinBitCount.Bit4),
+				CreatePinDescription("colorBR", 13, PinBitCount.Bit4),
+				CreatePinDescription("colorAB", 12, PinBitCount.Bit4),
+				CreatePinDescription("colorAG", 11, PinBitCount.Bit4),
+				CreatePinDescription("colorAR", 10, PinBitCount.Bit4),
+				CreatePinDescription("CX", 9, PinBitCount.Bit4),
+				CreatePinDescription("BY", 8, PinBitCount.Bit4),
+				CreatePinDescription("Ay", 7, PinBitCount.Bit4),
+				CreatePinDescription("CY", 6, PinBitCount.Bit4),
+				CreatePinDescription("AX", 5, PinBitCount.Bit4),
+				CreatePinDescription("BX", 4, PinBitCount.Bit4),
+				CreatePinDescription("ABP", 3, PinBitCount.Bit16),
+				CreatePinDescription("CAP", 2, PinBitCount.Bit16),
+				CreatePinDescription("BCP", 1, PinBitCount.Bit16),
+			};
+			
+			PinDescription[] outputPins = {
+				CreatePinDescription("RED", 21, PinBitCount.Bit4),
+				CreatePinDescription("GREEN", 20, PinBitCount.Bit4),
+				CreatePinDescription("BLUE", 19, PinBitCount.Bit4)
+			};
+			
+			Vector2 size = new(GridSize * 23, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + 2f);
+			
+			return CreateBuiltinChipDescription(ChipType.ColorInterpolationMath, size, col, inputPins, outputPins);
 		}
 
 		// (Not a chip, but convenient to treat it as one)

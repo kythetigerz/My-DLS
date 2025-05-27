@@ -177,13 +177,18 @@ namespace DLS.Simulation
 			// Check if the chip is frozen (freeze pin is high)
 			bool isChipFrozen = FreezeChip.IsChipFrozen(chip);
 
+			// If chip is frozen, don't process any subchips at all
+			if (isChipFrozen)
+			{
+				return;
+			}
 			// Check if auto-freeze is enabled
 			bool autoFreezeEnabled = Project.ActiveProject != null && 
 									 Project.ActiveProject.description.Prefs_FreezeAuto;
 			
 			// Check for auto-freeze if not already frozen
 			bool skipDueToAutoFreeze = false;
-			if (autoFreezeEnabled && !isChipFrozen && chip.InputPins.Length > 0)
+			if (autoFreezeEnabled && chip.InputPins.Length > 0)
 			{
 				// Don't auto-freeze chips that need to update every frame
 				bool chipRequiresConstantUpdates = 
@@ -213,10 +218,10 @@ namespace DLS.Simulation
 				}
 			}
 
-			// Skip processing if frozen or auto-frozen
-			if (isChipFrozen || skipDueToAutoFreeze)
+			// Skip processing if auto-frozen
+			if (skipDueToAutoFreeze)
 			{
-				// Still need to propagate outputs even if frozen
+				// Still need to propagate outputs even if auto-frozen
 				for (int i = chip.SubChips.Length - 1; i >= 0; i--)
 				{
 					chip.SubChips[i].Sim_PropagateOutputs();
@@ -258,9 +263,6 @@ namespace DLS.Simulation
 		{
 			chip.Sim_PropagateInputs();
 
-			// Check if the chip is frozen
-			bool isChipFrozen = FreezeChip.IsChipFrozen(chip);
-
 			SimChip[] subChips = chip.SubChips;
 			int numRemaining = subChips.Length;
 
@@ -275,13 +277,9 @@ namespace DLS.Simulation
 				(subChips[nextSubChipIndex], subChips[numRemaining - 1]) = (subChips[numRemaining - 1], subChips[nextSubChipIndex]);
 				numRemaining--;
 
-				// Skip processing if the parent chip is frozen
-				if (!isChipFrozen)
-				{
-					// Process chosen subchip
-					if (nextSubChip.ChipType == ChipType.Custom) StepChipReorder(nextSubChip); // Recursively process custom chip
-					else ProcessBuiltinChip(nextSubChip); // We've reached a built-in chip, so process it directly 
-				}
+				// Process chosen subchip
+				if (nextSubChip.ChipType == ChipType.Custom) StepChipReorder(nextSubChip); // Recursively process custom chip
+				else ProcessBuiltinChip(nextSubChip); // We've reached a built-in chip, so process it directly 
 
 				// Step 3) Forward the outputs of the processed subchip to connected pins
 				// We still need to propagate outputs even if frozen, to maintain connections
@@ -743,6 +741,82 @@ namespace DLS.Simulation
 					// Output the 128 bits as 2x 64-bit values
 					chip.OutputPins[0].State = highBits; // Most significant 64 bits
 					chip.OutputPins[1].State = lowBits;  // Least significant 64 bits
+					break;
+				}
+				// Bulit in stuff
+				case ChipType.EdgeFunction:
+				{
+					// Get input values (all 4-bit)
+					ulong x = PinState.GetBitStates(chip.InputPins[5].State);   // X
+					ulong y = PinState.GetBitStates(chip.InputPins[4].State);   // Y
+					ulong ax = PinState.GetBitStates(chip.InputPins[3].State);  // AX
+					ulong ay = PinState.GetBitStates(chip.InputPins[2].State);  // AY
+					ulong bx = PinState.GetBitStates(chip.InputPins[1].State);  // BX
+					ulong by = PinState.GetBitStates(chip.InputPins[0].State);  // BY
+					
+					// Calculate E1(x, y) = (x - Ax) * (By - Ay) - (y - Ay) * (Bx - Ax)
+					ulong term1 = (x - ax) * (by - ay);
+					ulong term2 = (y - ay) * (bx - ax);
+					ulong result = term1 - term2;
+
+					// Convert result to 16-bit unsigned (with proper wrapping)
+					ulong output = result & 0xFFFF;
+					
+					chip.OutputPins[0].State = output;
+					break;
+				}
+				case ChipType.ColorInterpolationMath:
+				{
+					// Get input values based on the updated pin layout from CreateColorInterpolationMath
+					ulong bcp = PinState.GetBitStates(chip.InputPins[0].State);  // BCP (16-bit) - pin 1
+					ulong cap = PinState.GetBitStates(chip.InputPins[1].State);  // CAP (16-bit) - pin 2
+					ulong abp = PinState.GetBitStates(chip.InputPins[2].State);  // ABP (16-bit) - pin 3
+					ulong bx = PinState.GetBitStates(chip.InputPins[3].State);   // BX (4-bit) - pin 4
+					ulong ax = PinState.GetBitStates(chip.InputPins[4].State);   // AX (4-bit) - pin 5
+					ulong cy = PinState.GetBitStates(chip.InputPins[5].State);   // CY (4-bit) - pin 6
+					ulong ay = PinState.GetBitStates(chip.InputPins[6].State);   // Ay (4-bit) - pin 7
+					ulong by = PinState.GetBitStates(chip.InputPins[7].State);   // BY (4-bit) - pin 8
+					ulong cx = PinState.GetBitStates(chip.InputPins[8].State);   // CX (4-bit) - pin 9
+					
+					// Color components for each vertex
+					ulong colourAR = PinState.GetBitStates(chip.InputPins[9].State);  // colorAR (4-bit) - pin 10
+					ulong colourAG = PinState.GetBitStates(chip.InputPins[10].State); // colorAG (4-bit) - pin 11
+					ulong colourAB = PinState.GetBitStates(chip.InputPins[11].State); // colorAB (4-bit) - pin 12
+					ulong colourBR = PinState.GetBitStates(chip.InputPins[12].State); // colorBR (4-bit) - pin 13
+					ulong colourBG = PinState.GetBitStates(chip.InputPins[13].State); // colorBG (4-bit) - pin 14
+					ulong colourBB = PinState.GetBitStates(chip.InputPins[14].State); // colorBB (4-bit) - pin 15
+					ulong colourCR = PinState.GetBitStates(chip.InputPins[15].State); // colorCR (4-bit) - pin 16
+					ulong colourCG = PinState.GetBitStates(chip.InputPins[16].State); // colorCG (4-bit) - pin 17
+					ulong colourCB = PinState.GetBitStates(chip.InputPins[17].State); // colorCB (4-bit) - pin 18
+
+					// Calculate ABC = (Bx - Ax) * (Cy - Ay) - (By - Ay) * (Cx - Ax)
+					long term1 = (long)((bx - ax) * (cy - ay));
+					long term2 = (long)((by - ay) * (cx - ax));
+					long abc = term1 - term2;
+					UnityEngine.Debug.Log(term1 + " " + term2 + " " + abc);
+					ulong red = 0, green = 0, blue = 0;
+
+						// Avoid division by zero
+						if (abc != 0)
+						{
+							// Calculate weights: weightA = BCP / ABC, weightB = CAP / ABC, weightC = ABP / ABC
+							long weightA = (long)bcp / abc;
+							long weightB = (long)cap / abc;
+							long weightC = (long)abp / abc;
+
+							// Calculate interpolated colors for each channel separately
+							// r = colourA.r * weightA + colourB.r * weightB + colourC.r * weightC
+							// g = colourA.g * weightA + colourB.g * weightB + colourC.g * weightC
+							// b = colourA.b * weightA + colourB.b * weightB + colourC.b * weightC
+							red = (ulong)Math.Max(0, (long)colourAR * weightA + (long)colourBR * weightB + (long)colourCR * weightC);
+							green = (ulong)Math.Max(0, (long)colourAG * weightA + (long)colourBG * weightB + (long)colourCG * weightC);
+							blue = (ulong)Math.Max(0, (long)colourAB * weightA + (long)colourBB * weightB + (long)colourCB * weightC);
+					}
+
+					// Clamp to 4-bit values and output (matching the output pin bit counts)
+					chip.OutputPins[0].State = red & 0xF;   // RED (4-bit) - pin 15
+					chip.OutputPins[1].State = green & 0xF; // GREEN (4-bit) - pin 14
+					chip.OutputPins[2].State = blue & 0xF;  // BLUE (4-bit) - pin 13
 					break;
 				}
 				case ChipType.Merge_1To16Bit:
