@@ -81,6 +81,7 @@ namespace DLS.Game
 				// ---- Built in items for computer----
 				CreateEdgeFunction(),
 				CreateColorInterpolationMath(),
+				CreateSolidStateDrive(),
 				// ---- Bus ----
 				CreateBus(PinBitCount.Bit1),
 				CreateBusTerminus(PinBitCount.Bit1),
@@ -430,6 +431,74 @@ namespace DLS.Game
 			Vector2 size = new(GridSize * 23, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + 2f);
 			
 			return CreateBuiltinChipDescription(ChipType.ColorInterpolationMath, size, col, inputPins, outputPins);
+		}
+
+		public static ChipDescription CreateSolidStateDrive()
+		{
+			Color col = new Color(0.949f, 0.839f, 0.008f); //rgb(241, 214, 2)
+
+			PinDescription[] inputPins =
+			{
+				// 8
+				CreatePinDescription("Address 1", 41, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 40, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 39, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 38, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 37, PinBitCount.Bit1),
+				// 7
+				CreatePinDescription("Address 1", 36, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 35, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 34, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 33, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 32, PinBitCount.Bit1),
+				// 6
+				CreatePinDescription("Address 1", 31, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 30, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 29, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 28, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 27, PinBitCount.Bit1),
+				// 5
+				CreatePinDescription("Address 1", 26, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 25, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 24, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 23, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 22, PinBitCount.Bit1),
+				// 4
+				CreatePinDescription("Address 1", 21, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 20, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 19, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 18, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 17, PinBitCount.Bit1),
+				// 3
+				CreatePinDescription("Address 1", 16, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 15, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 14, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 13, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 12, PinBitCount.Bit1),
+				// 2
+				CreatePinDescription("Address 1", 11, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 10, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 9, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 8, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 7, PinBitCount.Bit1),
+				// 1
+				CreatePinDescription("Address 1", 6, PinBitCount.Bit8),
+				CreatePinDescription("Data 1", 5, PinBitCount.Bit4),
+				CreatePinDescription("Full Clear 1", 4, PinBitCount.Bit4),
+				CreatePinDescription("Deallocate 1", 3, PinBitCount.Bit1),
+				CreatePinDescription("Write 1", 2, PinBitCount.Bit1),
+				CreatePinDescription("Clear All", 1, PinBitCount.Bit1),
+			};
+			
+			PinDescription[] outputPins = {
+				CreatePinDescription("RED", 44, PinBitCount.Bit4),
+				CreatePinDescription("GREEN", 43, PinBitCount.Bit4),
+				CreatePinDescription("BLUE", 42, PinBitCount.Bit4)
+			};
+			
+			Vector2 size = new(GridSize * 23, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(ChipType.SolidStateDrive, size, col, inputPins, outputPins);
 		}
 
 		// (Not a chip, but convenient to treat it as one)

@@ -12,6 +12,7 @@ namespace DLS.Description
 			// ---- Bulit in computer chips ----
 			{ ChipType.EdgeFunction, "EDGE FUNCTION " },
 			{ ChipType.ColorInterpolationMath, "Color Interpolation Math" },
+			{ ChipType.SolidStateDrive, "Solid State Drive" },
 			// ---- Basic Chips ----
 			{ ChipType.Nand, "NAND" },
 			{ ChipType.Clock, "CLOCK" },

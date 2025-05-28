@@ -7,6 +7,7 @@ namespace DLS.Description
 		// ---- Bulit in computer chips ----
 		EdgeFunction,
 		ColorInterpolationMath,
+		SolidStateDrive,
 
 		// ---- Basic Chips ----
 		Nand,
