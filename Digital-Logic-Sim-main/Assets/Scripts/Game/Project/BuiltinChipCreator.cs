@@ -402,30 +402,30 @@ namespace DLS.Game
 
 			PinDescription[] inputPins =
 			{
-				CreatePinDescription("colorCB", 18, PinBitCount.Bit4),
-				CreatePinDescription("colorCG", 17, PinBitCount.Bit4),
-				CreatePinDescription("colorCR", 16, PinBitCount.Bit4),
-				CreatePinDescription("colorBB", 15, PinBitCount.Bit4),
-				CreatePinDescription("colorBG", 14, PinBitCount.Bit4),
-				CreatePinDescription("colorBR", 13, PinBitCount.Bit4),
-				CreatePinDescription("colorAB", 12, PinBitCount.Bit4),
-				CreatePinDescription("colorAG", 11, PinBitCount.Bit4),
-				CreatePinDescription("colorAR", 10, PinBitCount.Bit4),
-				CreatePinDescription("CX", 9, PinBitCount.Bit4),
-				CreatePinDescription("BY", 8, PinBitCount.Bit4),
-				CreatePinDescription("Ay", 7, PinBitCount.Bit4),
-				CreatePinDescription("CY", 6, PinBitCount.Bit4),
-				CreatePinDescription("AX", 5, PinBitCount.Bit4),
-				CreatePinDescription("BX", 4, PinBitCount.Bit4),
-				CreatePinDescription("ABP", 3, PinBitCount.Bit16),
-				CreatePinDescription("CAP", 2, PinBitCount.Bit16),
-				CreatePinDescription("BCP", 1, PinBitCount.Bit16),
+				CreatePinDescription("BCP", 0, PinBitCount.Bit16),
+				CreatePinDescription("CAP", 1, PinBitCount.Bit16),
+				CreatePinDescription("ABP", 2, PinBitCount.Bit16),
+				CreatePinDescription("BX", 3, PinBitCount.Bit4),
+				CreatePinDescription("AX", 4, PinBitCount.Bit4),
+				CreatePinDescription("CY", 5, PinBitCount.Bit4),
+				CreatePinDescription("Ay", 6, PinBitCount.Bit4),
+				CreatePinDescription("BY", 7, PinBitCount.Bit4),
+				CreatePinDescription("CX", 8, PinBitCount.Bit4),
+				CreatePinDescription("colorAR", 9, PinBitCount.Bit4),
+				CreatePinDescription("colorAG", 10, PinBitCount.Bit4),
+				CreatePinDescription("colorAB", 11, PinBitCount.Bit4),
+				CreatePinDescription("colorBR", 12, PinBitCount.Bit4),
+				CreatePinDescription("colorBG", 13, PinBitCount.Bit4),
+				CreatePinDescription("colorBB", 14, PinBitCount.Bit4),
+				CreatePinDescription("colorCR", 15, PinBitCount.Bit4),
+				CreatePinDescription("colorCG", 16, PinBitCount.Bit4),
+				CreatePinDescription("colorCB", 17, PinBitCount.Bit4),
 			};
 			
 			PinDescription[] outputPins = {
-				CreatePinDescription("RED", 21, PinBitCount.Bit4),
-				CreatePinDescription("GREEN", 20, PinBitCount.Bit4),
-				CreatePinDescription("BLUE", 19, PinBitCount.Bit4)
+				CreatePinDescription("BLUE", 18, PinBitCount.Bit4),
+				CreatePinDescription("GREEN", 19, PinBitCount.Bit4),
+				CreatePinDescription("RED", 20, PinBitCount.Bit4)
 			};
 			
 			Vector2 size = new(GridSize * 23, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + 2f);

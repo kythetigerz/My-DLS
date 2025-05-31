@@ -789,34 +789,52 @@ namespace DLS.Simulation
 					ulong colourCG = PinState.GetBitStates(chip.InputPins[16].State); // colorCG (4-bit) - pin 17
 					ulong colourCB = PinState.GetBitStates(chip.InputPins[17].State); // colorCB (4-bit) - pin 18
 
-					// Calculate ABC = (Bx - Ax) * (Cy - Ay) - (By - Ay) * (Cx - Ax)
+					// =============================
+					// Step 1: compute signed area of ABC (twice the area)
+					// (Exactly as you had it:)
 					long term1 = (long)((bx - ax) * (cy - ay));
 					long term2 = (long)((by - ay) * (cx - ax));
-					long abc = term1 - term2;
-					UnityEngine.Debug.Log(term1 + " " + term2 + " " + abc);
-					ulong red = 0, green = 0, blue = 0;
+					long abcSigned = term1 - term2;
 
-						// Avoid division by zero
-						if (abc != 0)
-						{
-							// Calculate weights: weightA = BCP / ABC, weightB = CAP / ABC, weightC = ABP / ABC
-							long weightA = (long)bcp / abc;
-							long weightB = (long)cap / abc;
-							long weightC = (long)abp / abc;
+					// Step 2: take absolute value for denominator so weights always add to +1
+					double abc = Math.Abs((double)abcSigned);
 
-							// Calculate interpolated colors for each channel separately
-							// r = colourA.r * weightA + colourB.r * weightB + colourC.r * weightC
-							// g = colourA.g * weightA + colourB.g * weightB + colourC.g * weightC
-							// b = colourA.b * weightA + colourB.b * weightB + colourC.b * weightC
-							red = (ulong)Math.Max(0, (long)colourAR * weightA + (long)colourBR * weightB + (long)colourCR * weightC);
-							green = (ulong)Math.Max(0, (long)colourAG * weightA + (long)colourBG * weightB + (long)colourCG * weightC);
-							blue = (ulong)Math.Max(0, (long)colourAB * weightA + (long)colourBB * weightB + (long)colourCB * weightC);
+					// Step 3: bail out if the triangle is degenerate (area = 0)
+					double redF = 0, greenF = 0, blueF = 0;
+					if (abc > 0.0)
+					{
+						// Compute floating‐point barycentric “areas” from your 16-bit inputs:
+						// BCP/ABC → weight for A, etc.
+						double weightA = (double)(long)bcp / abc;
+						double weightB = (double)(long)cap / abc;
+						double weightC = (double)(long)abp / abc;
+
+						// Now interpolate each channel in floating point
+						// colourAR, colourAG, colourAB, etc. are 0…15
+						redF   = (double)(long)colourAR * weightA
+							+ (double)(long)colourBR * weightB
+							+ (double)(long)colourCR * weightC;
+
+						greenF = (double)(long)colourAG * weightA
+							+ (double)(long)colourBG * weightB
+							+ (double)(long)colourCG * weightC;
+
+						blueF  = (double)(long)colourAB * weightA
+							+ (double)(long)colourBB * weightB
+							+ (double)(long)colourCB * weightC;
 					}
 
-					// Clamp to 4-bit values and output (matching the output pin bit counts)
-					chip.OutputPins[0].State = red & 0xF;   // RED (4-bit) - pin 15
-					chip.OutputPins[1].State = green & 0xF; // GREEN (4-bit) - pin 14
-					chip.OutputPins[2].State = blue & 0xF;  // BLUE (4-bit) - pin 13
+					// Step 4: clamp each channel to [0,15] and convert back to ulong
+					// Optional: round to nearest integer before clamping
+					ulong red   = (ulong)Math.Max(0, Math.Min(15, (int)Math.Round(redF)));
+					ulong green = (ulong)Math.Max(0, Math.Min(15, (int)Math.Round(greenF)));
+					ulong blue  = (ulong)Math.Max(0, Math.Min(15, (int)Math.Round(blueF)));
+
+					// Step 5: write to output pins (still 4-bit)
+					// note: I kept the same output-pin ordering you had
+					chip.OutputPins[0].State = red;   // RED (4-bit)  - pin 15
+					chip.OutputPins[1].State = green; // GREEN (4-bit) - pin 14
+					chip.OutputPins[2].State = blue;  // BLUE (4-bit)  - pin 13
 					break;
 				}
 				case ChipType.Merge_1To16Bit:
