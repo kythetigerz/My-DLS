@@ -33,6 +33,50 @@ namespace DLS.Game
 				CreateTristateBuffer(),
 				CreateClock(),
 				CreatePulse(),
+				// ---- Basic Logic Gates (Builtin) ----
+				CreateBasicLogicGate(ChipType.B_And_1Bit, "AND", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_And_4Bit, "AND", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_And_8Bit, "AND", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_And_16Bit, "AND", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_And_32Bit, "AND", PinBitCount.Bit32),
+				CreateBasicLogicGate(ChipType.B_Not_1Bit, "NOT", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_Not_4Bit, "NOT", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_Not_8Bit, "NOT", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_Not_16Bit, "NOT", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_Not_32Bit, "NOT", PinBitCount.Bit32),
+				CreateBasicLogicGate(ChipType.B_Or_1Bit, "OR", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_Or_4Bit, "OR", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_Or_8Bit, "OR", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_Or_16Bit, "OR", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_Or_32Bit, "OR", PinBitCount.Bit32),
+				CreateBasicLogicGate(ChipType.B_Xor_1Bit, "XOR", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_Xor_4Bit, "XOR", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_Xor_8Bit, "XOR", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_Xor_16Bit, "XOR", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_Xor_32Bit, "XOR", PinBitCount.Bit32),
+				CreateBasicLogicGate(ChipType.B_Xnor_1Bit, "XNOR", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_Xnor_4Bit, "XNOR", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_Xnor_8Bit, "XNOR", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_Xnor_16Bit, "XNOR", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_Xnor_32Bit, "XNOR", PinBitCount.Bit32),
+				CreateBasicLogicGate(ChipType.B_Nor_1Bit, "NOR", PinBitCount.Bit1),
+				CreateBasicLogicGate(ChipType.B_Nor_4Bit, "NOR", PinBitCount.Bit4),
+				CreateBasicLogicGate(ChipType.B_Nor_8Bit, "NOR", PinBitCount.Bit8),
+				CreateBasicLogicGate(ChipType.B_Nor_16Bit, "NOR", PinBitCount.Bit16),
+				CreateBasicLogicGate(ChipType.B_Nor_32Bit, "NOR", PinBitCount.Bit32),
+				CreateBuiltinTristateBuffer(ChipType.B_TriStateBuffer_1Bit, PinBitCount.Bit1),
+				CreateBuiltinTristateBuffer(ChipType.B_TriStateBuffer_4Bit, PinBitCount.Bit4),
+				CreateBuiltinTristateBuffer(ChipType.B_TriStateBuffer_8Bit, PinBitCount.Bit8),
+				CreateBuiltinTristateBuffer(ChipType.B_TriStateBuffer_16Bit, PinBitCount.Bit16),
+				CreateBuiltinTristateBuffer(ChipType.B_TriStateBuffer_32Bit, PinBitCount.Bit32),
+				// ---- Counters ----
+				CreateCounter(ChipType.B_Counter_4Bit, PinBitCount.Bit4),
+				CreateCounter(ChipType.B_Counter_8Bit, PinBitCount.Bit8),
+				// ---- Comparators ----
+				CreateEquals(ChipType.B_Equals_4Bit, PinBitCount.Bit4),
+				CreateEquals(ChipType.B_Equals_8Bit, PinBitCount.Bit8),
+				// ---- Utility ----
+				CreateFirstTick(),
 				// ---- Memory ----
 				dev_CreateRAM_8(),
 				CreateROM_8(),
@@ -131,12 +175,12 @@ namespace DLS.Game
 		{
 			PinDescription[] inputPins =
 			{
-				CreatePinDescription("ADDRESS", 0, PinBitCount.Bit16) // 16-bit address for 30k rows
+				CreatePinDescription("ADDRESS", 0, PinBitCount.Bit8)
 			};
 			PinDescription[] outputPins =
 			{
-				CreatePinDescription("OUT HIGH", 1, PinBitCount.Bit64), // Most significant 64 bits
-				CreatePinDescription("OUT LOW", 2, PinBitCount.Bit64)   // Least significant 64 bits
+				CreatePinDescription("OUT B", 1, PinBitCount.Bit8),
+				CreatePinDescription("OUT A", 2, PinBitCount.Bit8)
 			};
 
 			Color col = new(0.25f, 0.35f, 0.5f);
@@ -654,6 +698,96 @@ namespace DLS.Game
 					}
 				}
 			}
+		}
+
+		static ChipDescription CreateBasicLogicGate(ChipType chipType, string gateName, PinBitCount bitCount)
+		{
+			Color col = new(0.4f, 0.6f, 0.8f);
+			
+			PinDescription[] inputPins;
+			PinDescription[] outputPins = { CreatePinDescription("OUT", 2, bitCount) };
+			
+			if (gateName == "NOT")
+			{
+				inputPins = new[] { CreatePinDescription("IN", 0, bitCount) };
+			}
+			else
+			{
+				inputPins = new[] 
+				{ 
+					CreatePinDescription("IN A", 0, bitCount),
+					CreatePinDescription("IN B", 1, bitCount)
+				};
+			}
+			
+			Vector2 size = new(GridSize * 8, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateBuiltinTristateBuffer(ChipType chipType, PinBitCount bitCount)
+		{
+			Color col = new(0.4f, 0.6f, 0.8f);
+			
+			PinDescription[] inputPins = 
+			{ 
+				CreatePinDescription("IN", 0, bitCount),
+				CreatePinDescription("ENABLE", 1)
+			};
+			PinDescription[] outputPins = { CreatePinDescription("OUT", 2, bitCount) };
+			
+			Vector2 size = new(GridSize * 8, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateCounter(ChipType chipType, PinBitCount bitCount)
+		{
+			Color col = new(0.8f, 0.6f, 0.2f);
+			
+			PinDescription[] inputPins = 
+			{
+				CreatePinDescription("CLOCK", 0),
+				CreatePinDescription("RESET", 1)
+			};
+			PinDescription[] outputPins = { CreatePinDescription("COUNT", 2, bitCount) };
+			
+			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateEquals(ChipType chipType, PinBitCount bitCount)
+		{
+			Color col = new(0.6f, 0.8f, 0.4f);
+			
+			PinDescription[] inputPins = 
+			{
+				CreatePinDescription("IN A", 0, bitCount),
+				CreatePinDescription("IN B", 1, bitCount)
+			};
+			PinDescription[] outputPins = { CreatePinDescription("EQUAL", 2) };
+			
+			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateFirstTick()
+		{
+			Color col = new(0.8f, 0.4f, 0.6f);
+			
+			PinDescription[] inputPins = 
+			{
+				CreatePinDescription("ON", 0),
+				CreatePinDescription("RESET", 1),
+				CreatePinDescription("CLOCK", 2)
+			};
+			PinDescription[] outputPins = { CreatePinDescription("FIRST TICK", 3) };
+			
+			Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+			
+			return CreateBuiltinChipDescription(ChipType.B_FirstTick, size, col, inputPins, outputPins);
 		}
 	}
 }

@@ -15,6 +15,54 @@ namespace DLS.Description
 		Clock,
 		Pulse,
 
+		// ---- Basic Logic Gates (Builtin) ----
+		B_And_1Bit,
+		B_And_4Bit,
+		B_And_8Bit,
+		B_And_16Bit,
+		B_And_32Bit,
+		B_Not_1Bit,
+		B_Not_4Bit,
+		B_Not_8Bit,
+		B_Not_16Bit,
+		B_Not_32Bit,
+		B_Or_1Bit,
+		B_Or_4Bit,
+		B_Or_8Bit,
+		B_Or_16Bit,
+		B_Or_32Bit,
+		B_Xor_1Bit,
+		B_Xor_4Bit,
+		B_Xor_8Bit,
+		B_Xor_16Bit,
+		B_Xor_32Bit,
+		B_Xnor_1Bit,
+		B_Xnor_4Bit,
+		B_Xnor_8Bit,
+		B_Xnor_16Bit,
+		B_Xnor_32Bit,
+		B_Nor_1Bit,
+		B_Nor_4Bit,
+		B_Nor_8Bit,
+		B_Nor_16Bit,
+		B_Nor_32Bit,
+		B_TriStateBuffer_1Bit,
+		B_TriStateBuffer_4Bit,
+		B_TriStateBuffer_8Bit,
+		B_TriStateBuffer_16Bit,
+		B_TriStateBuffer_32Bit,
+
+		// ---- Counters ----
+		B_Counter_4Bit,
+		B_Counter_8Bit,
+
+		// ---- Comparators ----
+		B_Equals_4Bit,
+		B_Equals_8Bit,
+
+		// ---- Utility ----
+		B_FirstTick,
+
 		// ---- Memory ----
 		dev_Ram_8Bit,
 		Rom_256x16,

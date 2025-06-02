@@ -726,21 +726,11 @@ namespace DLS.Simulation
 				}
 				case ChipType.Rom_256x16:
 				{
-					// Ensure address is within valid range (0-29999)
-					ulong address = PinState.GetBitStates(chip.InputPins[0].State) & 0xFFFF; // Limit to 16 bits
-					
-					// Safely access internal state
-					ulong highBits = 0, lowBits = 0;
-					if (address < 30000 && address * 4 + 3 < (ulong)chip.InternalState.Length)
-					{
-						// Each row is 4 uint values (128 bits total)
-						highBits = ((ulong)chip.InternalState[address * 4] << 32) | (ulong)chip.InternalState[address * 4 + 1];
-						lowBits = ((ulong)chip.InternalState[address * 4 + 2] << 32) | (ulong)chip.InternalState[address * 4 + 3];
-					}
-					
-					// Output the 128 bits as 2x 64-bit values
-					chip.OutputPins[0].State = highBits; // Most significant 64 bits
-					chip.OutputPins[1].State = lowBits;  // Least significant 64 bits
+					const int ByteMask = 0b11111111;
+					uint address = (uint)PinState.GetBitStates(chip.InputPins[0].State);
+					uint data = (uint)chip.InternalState[address];
+					chip.OutputPins[0].State = (ushort)((data >> 8) & ByteMask);
+					chip.OutputPins[1].State = (ushort)(data & ByteMask);
 					break;
 				}
 				// Bulit in stuff
@@ -835,6 +825,193 @@ namespace DLS.Simulation
 					chip.OutputPins[0].State = red;   // RED (4-bit)  - pin 15
 					chip.OutputPins[1].State = green; // GREEN (4-bit) - pin 14
 					chip.OutputPins[2].State = blue;  // BLUE (4-bit)  - pin 13
+					break;
+				}
+
+				// ---- Basic Logic Gates ----
+				case ChipType.B_And_1Bit:
+				case ChipType.B_And_4Bit:
+				case ChipType.B_And_8Bit:
+				case ChipType.B_And_16Bit:
+				case ChipType.B_And_32Bit:
+				{
+					ulong result = chip.InputPins[0].State & chip.InputPins[1].State;
+					chip.OutputPins[0].State = result;
+					break;
+				}
+
+				case ChipType.B_Not_1Bit:
+				case ChipType.B_Not_4Bit:
+				case ChipType.B_Not_8Bit:
+				case ChipType.B_Not_16Bit:
+				case ChipType.B_Not_32Bit:
+				{
+					ulong input = chip.InputPins[0].State;
+					ulong mask = chip.ChipType switch
+					{
+						ChipType.B_Not_1Bit => 0x1UL,
+						ChipType.B_Not_4Bit => 0xFUL,
+						ChipType.B_Not_8Bit => 0xFFUL,
+						ChipType.B_Not_16Bit => 0xFFFFUL,
+						ChipType.B_Not_32Bit => 0xFFFFFFFFUL,
+						_ => 0xFFFFFFFFFFFFFFFFUL
+					};
+					chip.OutputPins[0].State = (~input) & mask;
+					break;
+				}
+
+				case ChipType.B_Or_1Bit:
+				case ChipType.B_Or_4Bit:
+				case ChipType.B_Or_8Bit:
+				case ChipType.B_Or_16Bit:
+				case ChipType.B_Or_32Bit:
+				{
+					ulong result = chip.InputPins[0].State | chip.InputPins[1].State;
+					chip.OutputPins[0].State = result;
+					break;
+				}
+
+				case ChipType.B_Xor_1Bit:
+				case ChipType.B_Xor_4Bit:
+				case ChipType.B_Xor_8Bit:
+				case ChipType.B_Xor_16Bit:
+				case ChipType.B_Xor_32Bit:
+				{
+					ulong result = chip.InputPins[0].State ^ chip.InputPins[1].State;
+					chip.OutputPins[0].State = result;
+					break;
+				}
+
+				case ChipType.B_Xnor_1Bit:
+				case ChipType.B_Xnor_4Bit:
+				case ChipType.B_Xnor_8Bit:
+				case ChipType.B_Xnor_16Bit:
+				case ChipType.B_Xnor_32Bit:
+				{
+					ulong xorResult = chip.InputPins[0].State ^ chip.InputPins[1].State;
+					ulong mask = chip.ChipType switch
+					{
+						ChipType.B_Xnor_1Bit => 0x1UL,
+						ChipType.B_Xnor_4Bit => 0xFUL,
+						ChipType.B_Xnor_8Bit => 0xFFUL,
+						ChipType.B_Xnor_16Bit => 0xFFFFUL,
+						ChipType.B_Xnor_32Bit => 0xFFFFFFFFUL,
+						_ => 0xFFFFFFFFFFFFFFFFUL
+					};
+					chip.OutputPins[0].State = (~xorResult) & mask;
+					break;
+				}
+
+				case ChipType.B_Nor_1Bit:
+				case ChipType.B_Nor_4Bit:
+				case ChipType.B_Nor_8Bit:
+				case ChipType.B_Nor_16Bit:
+				case ChipType.B_Nor_32Bit:
+				{
+					ulong orResult = chip.InputPins[0].State | chip.InputPins[1].State;
+					ulong mask = chip.ChipType switch
+					{
+						ChipType.B_Nor_1Bit => 0x1UL,
+						ChipType.B_Nor_4Bit => 0xFUL,
+						ChipType.B_Nor_8Bit => 0xFFUL,
+						ChipType.B_Nor_16Bit => 0xFFFFUL,
+						ChipType.B_Nor_32Bit => 0xFFFFFFFFUL,
+						_ => 0xFFFFFFFFFFFFFFFFUL
+					};
+					chip.OutputPins[0].State = (~orResult) & mask;
+					break;
+				}
+
+				case ChipType.B_TriStateBuffer_1Bit:
+				case ChipType.B_TriStateBuffer_4Bit:
+				case ChipType.B_TriStateBuffer_8Bit:
+				case ChipType.B_TriStateBuffer_16Bit:
+				case ChipType.B_TriStateBuffer_32Bit:
+				{
+					SimPin dataPin = chip.InputPins[0];
+					SimPin enablePin = chip.InputPins[1];
+					SimPin outputPin = chip.OutputPins[0];
+
+					if (PinState.FirstBitHigh(enablePin.State)) 
+						outputPin.State = dataPin.State;
+					else 
+						PinState.SetAllDisconnected(ref outputPin.State);
+					break;
+				}
+
+				case ChipType.B_Counter_4Bit:
+				case ChipType.B_Counter_8Bit:
+				{
+					ulong clockPin = chip.InputPins[0].State;
+					ulong resetPin = chip.InputPins[1].State;
+
+					// Detect clock rising edge
+					bool clockHigh = PinState.FirstBitHigh(clockPin);
+					bool isRisingEdge = clockHigh && chip.InternalState[1] == 0;
+					chip.InternalState[1] = clockHigh ? 1u : 0;
+
+					if (isRisingEdge)
+					{
+						if (PinState.FirstBitHigh(resetPin))
+						{
+							chip.InternalState[0] = 0;
+						}
+						else
+						{
+							ulong maxValue = chip.ChipType == ChipType.B_Counter_4Bit ? 15u : 255u;
+							chip.InternalState[0] = (chip.InternalState[0] + 1) % (maxValue + 1);
+						}
+					}
+
+					chip.OutputPins[0].State = chip.InternalState[0];
+					break;
+				}
+
+				case ChipType.B_Equals_4Bit:
+				case ChipType.B_Equals_8Bit:
+				{
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					ulong mask = chip.ChipType == ChipType.B_Equals_4Bit ? 0xFUL : 0xFFUL;
+					
+					bool areEqual = (inputA & mask) == (inputB & mask);
+					chip.OutputPins[0].State = areEqual ? PinState.LogicHigh : PinState.LogicLow;
+					break;
+				}
+
+				case ChipType.B_FirstTick:
+				{
+					ulong onPin = chip.InputPins[0].State;
+					ulong resetPin = chip.InputPins[1].State;
+					ulong clockPin = chip.InputPins[2].State;
+
+					bool onHigh = PinState.FirstBitHigh(onPin);
+					bool resetHigh = PinState.FirstBitHigh(resetPin);
+					bool clockHigh = PinState.FirstBitHigh(clockPin);
+
+					// Internal state: [0] = firstTickState, [1] = previousClockState
+					bool previousClockHigh = chip.InternalState[1] != 0;
+
+					// If reset is high, first tick is on
+					if (resetHigh)
+					{
+						chip.InternalState[0] = 1;
+					}
+					// If on is on and clock goes from high to low, turn off first tick
+					else if (onHigh && previousClockHigh && !clockHigh)
+					{
+						chip.InternalState[0] = 0;
+					}
+
+					// Update previous clock state
+					chip.InternalState[1] = clockHigh ? 1u : 0;
+
+					// Output logic: if all 3 are on, output should be on, otherwise use internal state
+					bool outputHigh = (onHigh && resetHigh && clockHigh) || 
+									(chip.InternalState[0] != 0 && onHigh);
+
+					chip.OutputPins[0].State = outputHigh ? PinState.LogicHigh : PinState.LogicLow;
 					break;
 				}
 				case ChipType.Merge_1To16Bit:
