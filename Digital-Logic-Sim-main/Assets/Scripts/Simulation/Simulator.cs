@@ -835,7 +835,18 @@ namespace DLS.Simulation
 				case ChipType.B_And_16Bit:
 				case ChipType.B_And_32Bit:
 				{
-					ulong result = chip.InputPins[0].State & chip.InputPins[1].State;
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Check if either input is tristate (disconnected)
+					ulong tristateA = PinState.GetTristateFlags(inputA);
+					ulong tristateB = PinState.GetTristateFlags(inputB);
+					
+					// If either input is tristate, treat it as logic low for AND operation
+					ulong valueA = tristateA != 0 ? 0 : PinState.GetBitStates(inputA);
+					ulong valueB = tristateB != 0 ? 0 : PinState.GetBitStates(inputB);
+					
+					ulong result = valueA & valueB;
 					chip.OutputPins[0].State = result;
 					break;
 				}
@@ -847,6 +858,8 @@ namespace DLS.Simulation
 				case ChipType.B_Not_32Bit:
 				{
 					ulong input = chip.InputPins[0].State;
+					ulong tristateFlags = PinState.GetTristateFlags(input);
+					
 					ulong mask = chip.ChipType switch
 					{
 						ChipType.B_Not_1Bit => 0x1UL,
@@ -856,7 +869,10 @@ namespace DLS.Simulation
 						ChipType.B_Not_32Bit => 0xFFFFFFFFUL,
 						_ => 0xFFFFFFFFFFFFFFFFUL
 					};
-					chip.OutputPins[0].State = (~input) & mask;
+					
+					// If input is tristate, treat as logic low, so NOT of low is high
+					ulong value = tristateFlags != 0 ? 0 : PinState.GetBitStates(input);
+					chip.OutputPins[0].State = (~value) & mask;
 					break;
 				}
 
@@ -866,7 +882,18 @@ namespace DLS.Simulation
 				case ChipType.B_Or_16Bit:
 				case ChipType.B_Or_32Bit:
 				{
-					ulong result = chip.InputPins[0].State | chip.InputPins[1].State;
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Check if either input is tristate (disconnected)
+					ulong tristateA = PinState.GetTristateFlags(inputA);
+					ulong tristateB = PinState.GetTristateFlags(inputB);
+					
+					// If either input is tristate, treat it as logic low for OR operation
+					ulong valueA = tristateA != 0 ? 0 : PinState.GetBitStates(inputA);
+					ulong valueB = tristateB != 0 ? 0 : PinState.GetBitStates(inputB);
+					
+					ulong result = valueA | valueB;
 					chip.OutputPins[0].State = result;
 					break;
 				}
@@ -877,7 +904,18 @@ namespace DLS.Simulation
 				case ChipType.B_Xor_16Bit:
 				case ChipType.B_Xor_32Bit:
 				{
-					ulong result = chip.InputPins[0].State ^ chip.InputPins[1].State;
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Check if either input is tristate (disconnected)
+					ulong tristateA = PinState.GetTristateFlags(inputA);
+					ulong tristateB = PinState.GetTristateFlags(inputB);
+					
+					// If either input is tristate, treat it as logic low for XOR operation
+					ulong valueA = tristateA != 0 ? 0 : PinState.GetBitStates(inputA);
+					ulong valueB = tristateB != 0 ? 0 : PinState.GetBitStates(inputB);
+					
+					ulong result = valueA ^ valueB;
 					chip.OutputPins[0].State = result;
 					break;
 				}
@@ -888,7 +926,18 @@ namespace DLS.Simulation
 				case ChipType.B_Xnor_16Bit:
 				case ChipType.B_Xnor_32Bit:
 				{
-					ulong xorResult = chip.InputPins[0].State ^ chip.InputPins[1].State;
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Check if either input is tristate (disconnected)
+					ulong tristateA = PinState.GetTristateFlags(inputA);
+					ulong tristateB = PinState.GetTristateFlags(inputB);
+					
+					// If either input is tristate, treat it as logic low for XNOR operation
+					ulong valueA = tristateA != 0 ? 0 : PinState.GetBitStates(inputA);
+					ulong valueB = tristateB != 0 ? 0 : PinState.GetBitStates(inputB);
+					
+					ulong xorResult = valueA ^ valueB;
 					ulong mask = chip.ChipType switch
 					{
 						ChipType.B_Xnor_1Bit => 0x1UL,
@@ -908,7 +957,18 @@ namespace DLS.Simulation
 				case ChipType.B_Nor_16Bit:
 				case ChipType.B_Nor_32Bit:
 				{
-					ulong orResult = chip.InputPins[0].State | chip.InputPins[1].State;
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Check if either input is tristate (disconnected)
+					ulong tristateA = PinState.GetTristateFlags(inputA);
+					ulong tristateB = PinState.GetTristateFlags(inputB);
+					
+					// If either input is tristate, treat it as logic low for NOR operation
+					ulong valueA = tristateA != 0 ? 0 : PinState.GetBitStates(inputA);
+					ulong valueB = tristateB != 0 ? 0 : PinState.GetBitStates(inputB);
+					
+					ulong orResult = valueA | valueB;
 					ulong mask = chip.ChipType switch
 					{
 						ChipType.B_Nor_1Bit => 0x1UL,
@@ -941,6 +1001,9 @@ namespace DLS.Simulation
 
 				case ChipType.B_Counter_4Bit:
 				case ChipType.B_Counter_8Bit:
+				case ChipType.B_Counter_16Bit:
+				case ChipType.B_Counter_32Bit:
+				case ChipType.B_Counter_64Bit:
 				{
 					ulong clockPin = chip.InputPins[0].State;
 					ulong resetPin = chip.InputPins[1].State;
@@ -966,6 +1029,9 @@ namespace DLS.Simulation
 
 				case ChipType.B_Equals_4Bit:
 				case ChipType.B_Equals_8Bit:
+				case ChipType.B_Equals_16Bit:
+				case ChipType.B_Equals_32Bit:
+				case ChipType.B_Equals_64Bit:
 				{
 					ulong inputA = chip.InputPins[0].State;
 					ulong inputB = chip.InputPins[1].State;
@@ -1009,6 +1075,84 @@ namespace DLS.Simulation
 									(chip.InternalState[0] != 0 && onHigh);
 
 					chip.OutputPins[0].State = outputHigh ? PinState.LogicHigh : PinState.LogicLow;
+					break;
+				}
+				case ChipType.EdgeFunction3Merge32Bit:
+				{
+					// Get input values (all 32-bit)
+					ulong x = PinState.GetBitStates(chip.InputPins[7].State);   // X
+					ulong y = PinState.GetBitStates(chip.InputPins[6].State);   // Y
+					ulong ax = PinState.GetBitStates(chip.InputPins[5].State);  // AX
+					ulong ay = PinState.GetBitStates(chip.InputPins[4].State);  // AY
+					ulong bx = PinState.GetBitStates(chip.InputPins[3].State);  // BX
+					ulong by = PinState.GetBitStates(chip.InputPins[2].State);  // BY
+					ulong cx = PinState.GetBitStates(chip.InputPins[1].State);  // CX
+					ulong cy = PinState.GetBitStates(chip.InputPins[0].State);  // CY
+					
+					// Calculate E1(x, y) = (x - Ax) * (By - Ay) - (y - Ay) * (Bx - Ax)
+					long e1_term1 = (long)((x - ax) * (by - ay));
+					long e1_term2 = (long)((y - ay) * (bx - ax));
+					long e1 = e1_term1 - e1_term2;
+					
+					// Calculate E2(x, y) = (x - Bx) * (Cy - By) - (y - By) * (Cx - Bx)
+					long e2_term1 = (long)((x - bx) * (cy - by));
+					long e2_term2 = (long)((y - by) * (cx - bx));
+					long e2 = e2_term1 - e2_term2;
+					
+					// Calculate E3(x, y) = (x - Cx) * (Ay - Cy) - (y - Cy) * (Ax - Cx)
+					long e3_term1 = (long)((x - cx) * (ay - cy));
+					long e3_term2 = (long)((y - cy) * (ax - cx));
+					long e3 = e3_term1 - e3_term2;
+					
+					// Check if all three edge functions have the same sign
+					// All positive (>= 0), all negative (< 0), or all zero
+					bool sameSign = (e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 < 0 && e2 < 0 && e3 < 0);
+					
+					// Output 1 bit: high if same sign, low otherwise
+					chip.OutputPins[0].State = sameSign ? PinState.LogicHigh : PinState.LogicLow;
+					break;
+				}
+				case ChipType.EdgeFunction3Merge32BitCHUNK:
+				{
+					// Get common X and Y coordinates
+					ulong x = PinState.GetBitStates(chip.InputPins[0].State);   // X
+					ulong y = PinState.GetBitStates(chip.InputPins[1].State);   // Y
+					
+					// Process each of the 1080 triangles
+					for (int i = 0; i < 1080; i++)
+					{
+						// Calculate pin indices for this triangle (starting after X and Y pins)
+						int baseIndex = 2 + (i * 6);
+						
+						// Get triangle coordinates for this instance
+						ulong ax = PinState.GetBitStates(chip.InputPins[baseIndex + 0].State);     // AX
+						ulong ay = PinState.GetBitStates(chip.InputPins[baseIndex + 1].State);     // AY
+						ulong bx = PinState.GetBitStates(chip.InputPins[baseIndex + 2].State);     // BX
+						ulong by = PinState.GetBitStates(chip.InputPins[baseIndex + 3].State);     // BY
+						ulong cx = PinState.GetBitStates(chip.InputPins[baseIndex + 4].State);     // CX
+						ulong cy = PinState.GetBitStates(chip.InputPins[baseIndex + 5].State);     // CY
+						
+						// Calculate E1(x, y) = (x - Ax) * (By - Ay) - (y - Ay) * (Bx - Ax)
+						long e1_term1 = (long)((x - ax) * (by - ay));
+						long e1_term2 = (long)((y - ay) * (bx - ax));
+						long e1 = e1_term1 - e1_term2;
+						
+						// Calculate E2(x, y) = (x - Bx) * (Cy - By) - (y - By) * (Cx - Bx)
+						long e2_term1 = (long)((x - bx) * (cy - by));
+						long e2_term2 = (long)((y - by) * (cx - bx));
+						long e2 = e2_term1 - e2_term2;
+						
+						// Calculate E3(x, y) = (x - Cx) * (Ay - Cy) - (y - Cy) * (Ax - Cx)
+						long e3_term1 = (long)((x - cx) * (ay - cy));
+						long e3_term2 = (long)((y - cy) * (ax - cx));
+						long e3 = e3_term1 - e3_term2;
+						
+						// Check if all three edge functions have the same sign
+						bool sameSign = (e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 < 0 && e2 < 0 && e3 < 0);
+						
+						// Set output for this triangle
+						chip.OutputPins[i].State = sameSign ? PinState.LogicHigh : PinState.LogicLow;
+					}
 					break;
 				}
 				case ChipType.Merge_1To16Bit:

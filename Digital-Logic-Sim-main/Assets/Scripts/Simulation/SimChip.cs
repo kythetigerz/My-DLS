@@ -86,7 +86,7 @@ namespace DLS.Simulation
 					InternalState[i] = BitConverter.ToUInt32(randomBytes);
 				}
 			}
-			else if (ChipType is ChipType.B_Counter_4Bit or ChipType.B_Counter_8Bit)
+			else if (ChipType is ChipType.B_Counter_4Bit or ChipType.B_Counter_8Bit or ChipType.B_Counter_16Bit or ChipType.B_Counter_32Bit or ChipType.B_Counter_64Bit)
 			{
 				// [0] = counter value, [1] = previous clock state
 				InternalState = new ulong[2];

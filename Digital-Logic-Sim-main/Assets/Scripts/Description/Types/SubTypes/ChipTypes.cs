@@ -6,6 +6,8 @@ namespace DLS.Description
 
 		// ---- Bulit in computer chips ----
 		EdgeFunction,
+		EdgeFunction3Merge32Bit,
+		EdgeFunction3Merge32BitCHUNK,
 		ColorInterpolationMath,
 		SolidStateDrive,
 
@@ -55,10 +57,16 @@ namespace DLS.Description
 		// ---- Counters ----
 		B_Counter_4Bit,
 		B_Counter_8Bit,
+		B_Counter_16Bit,
+		B_Counter_32Bit,
+		B_Counter_64Bit,
 
 		// ---- Comparators ----
 		B_Equals_4Bit,
 		B_Equals_8Bit,
+		B_Equals_16Bit,
+		B_Equals_32Bit,
+		B_Equals_64Bit,
 
 		// ---- Utility ----
 		B_FirstTick,

@@ -12,6 +12,8 @@ namespace DLS.Description
 			// ---- Bulit in computer chips ----
 			{ ChipType.EdgeFunction, "EDGE FUNCTION " },
 			{ ChipType.ColorInterpolationMath, "Color Interpolation Math" },
+			{ ChipType.EdgeFunction3Merge32Bit, "EDGE FUNCTION 3-MERGE 32-BIT" },
+			{ ChipType.EdgeFunction3Merge32BitCHUNK, "EDGE FUNCTION 3-MERGE 32-BIT CHUNK" },
 			{ ChipType.SolidStateDrive, "Solid State Drive" },
 			// ---- Basic Chips ----
 			{ ChipType.Nand, "NAND" },
@@ -57,9 +59,15 @@ namespace DLS.Description
 			// ---- Counters ----
 			{ ChipType.B_Counter_4Bit, "B-COUNTER-4" },
 			{ ChipType.B_Counter_8Bit, "B-COUNTER-8" },
+			{ ChipType.B_Counter_16Bit, "B-COUNTER-16" },
+			{ ChipType.B_Counter_32Bit, "B-COUNTER-32" },
+			{ ChipType.B_Counter_64Bit, "B-COUNTER-64" },
 			// ---- Comparators ----
 			{ ChipType.B_Equals_4Bit, "B-EQUALS-4" },
 			{ ChipType.B_Equals_8Bit, "B-EQUALS-8" },
+			{ ChipType.B_Equals_16Bit, "B-EQUALS-16" },
+			{ ChipType.B_Equals_32Bit, "B-EQUALS-32" },
+			{ ChipType.B_Equals_64Bit, "B-EQUALS-64" },
 			// ---- Utility ----
 			{ ChipType.B_FirstTick, "B-FIRST-TICK" },
 			// ---- Memory ----
