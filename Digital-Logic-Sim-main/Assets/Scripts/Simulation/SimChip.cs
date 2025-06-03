@@ -86,6 +86,20 @@ namespace DLS.Simulation
 					InternalState[i] = BitConverter.ToUInt32(randomBytes);
 				}
 			}
+			else if (ChipType is ChipType.B_Counter_4Bit or ChipType.B_Counter_8Bit)
+			{
+				// [0] = counter value, [1] = previous clock state
+				InternalState = new ulong[2];
+				InternalState[0] = 0; // Start counter at 0
+				InternalState[1] = 0; // Previous clock state starts low
+			}
+			else if (ChipType is ChipType.B_FirstTick)
+			{
+				// [0] = first tick state (starts as 1/true), [1] = previous clock state
+				InternalState = new ulong[2];
+				InternalState[0] = 1; // First tick starts as true/on
+				InternalState[1] = 0; // Previous clock state starts low
+			}
 			// Load in serialized persistent state (rom data, etc.)
 			else if (internalState is { Length: > 0 })
 			{

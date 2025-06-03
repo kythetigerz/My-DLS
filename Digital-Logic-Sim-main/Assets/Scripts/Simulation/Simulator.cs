@@ -949,20 +949,17 @@ namespace DLS.Simulation
 					bool clockHigh = PinState.FirstBitHigh(clockPin);
 					bool isRisingEdge = clockHigh && chip.InternalState[1] == 0;
 					chip.InternalState[1] = clockHigh ? 1u : 0;
+					
+					if (PinState.FirstBitHigh(resetPin))
+					{
+						chip.InternalState[0] = 0;
+					}
 
 					if (isRisingEdge)
 					{
-						if (PinState.FirstBitHigh(resetPin))
-						{
-							chip.InternalState[0] = 0;
-						}
-						else
-						{
-							ulong maxValue = chip.ChipType == ChipType.B_Counter_4Bit ? 15u : 255u;
-							chip.InternalState[0] = (chip.InternalState[0] + 1) % (maxValue + 1);
-						}
+						ulong maxValue = chip.ChipType == ChipType.B_Counter_4Bit ? 15u : 255u;
+						chip.InternalState[0] = (chip.InternalState[0] + 1) % (maxValue + 1);
 					}
-
 					chip.OutputPins[0].State = chip.InternalState[0];
 					break;
 				}
