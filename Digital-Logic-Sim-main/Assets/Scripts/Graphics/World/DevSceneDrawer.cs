@@ -977,14 +977,15 @@ namespace DLS.Graphics
 
 		static void DrawMultiBitWire(WireInstance wire)
 		{
-			float thickness = ShouldHighlightWire(wire) ? WireHighlightedThickness : WireThickness;
+			bool shouldHighlight = ShouldHighlightWire(wire);
+			float thickness = GetWireThickness(wire.bitCount, shouldHighlight);
 
 			Vector2 mousePos = InputHelper.MousePosWorld;
-			const float highlightDstThreshold = WireHighlightedThickness + (WireHighlightedThickness - WireThickness) * 0.8f;
-			const float sqrDstThreshold = highlightDstThreshold * highlightDstThreshold;
+			float highlightDstThreshold = thickness + (thickness - GetWireThickness(wire.bitCount, false)) * 0.8f;
+			float sqrDstThreshold = highlightDstThreshold * highlightDstThreshold;
 			bool canInteract = controller.CanInteractWithWire(wire);
 
-			WireLayoutHelper.CreateMultiBitWireLayout(wire.BitWires, wire, WireThickness);
+			WireLayoutHelper.CreateMultiBitWireLayout(wire.BitWires, wire, GetWireThickness(wire.bitCount, false));
 
 			// Draw
 			for (int bitIndex = 0; bitIndex < wire.BitWires.Length; bitIndex++)

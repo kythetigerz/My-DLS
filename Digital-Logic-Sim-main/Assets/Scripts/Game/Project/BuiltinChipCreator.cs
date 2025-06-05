@@ -132,6 +132,7 @@ namespace DLS.Game
 				CreateEdgeFunction(),
 				CreateColorInterpolationMath(),
 				CreateSolidStateDrive(),
+				CreateEdgeFunction3Merge32Bit(),
 				// ---- Math Operations ----
 				CreateAddition32(),
 				CreateMultiplication32(),

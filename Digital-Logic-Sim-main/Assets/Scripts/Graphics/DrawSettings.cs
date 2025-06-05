@@ -29,11 +29,51 @@ namespace DLS.Graphics
 		public const float ChipOutlineWidth = 0.05f;
 		public const float WireThickness = 0.025f;
 		public const float WireHighlightedThickness = WireThickness + 0.012f;
+		// Add wire thickness scaling factor
+		public const float WireThicknessScaleFactor = 0f; // Adjust this value to control how much thickness scales with pin height
 		public const float GridThickness = 0.0035f;
 		public const float DevPinStateDisplayRadius = 0.2f;
 		public const float DevPinStateDisplayOutline = 0.0175f;
 		public const float DevPinHandleWidth = DevPinStateDisplayRadius * 0.64f;
 		public const float MultiBitPinStateDisplaySquareSize = 0.21f;
+
+		// Helper method to get pin height based on bit count
+		public static float GetPinHeightFromBitCount(DLS.Description.PinBitCount bitCount)
+		{
+			return bitCount switch
+			{
+				DLS.Description.PinBitCount.Bit1 => PinHeight1Bit,
+				DLS.Description.PinBitCount.Bit4 => PinHeight4Bit,
+				DLS.Description.PinBitCount.Bit8 => PinHeight8Bit,
+				DLS.Description.PinBitCount.Bit16 => PinHeight16Bit,
+				DLS.Description.PinBitCount.Bit32 => PinHeight32Bit,
+				DLS.Description.PinBitCount.Bit64 => PinHeight64Bit,
+				_ => PinHeight1Bit
+			};
+		}
+
+		public static float GetBitNumberFromBitCount(DLS.Description.PinBitCount bitCount)
+		{
+			return bitCount switch
+			{
+				DLS.Description.PinBitCount.Bit1 => 1,
+				DLS.Description.PinBitCount.Bit4 => 4,
+				DLS.Description.PinBitCount.Bit8 => 8,
+				DLS.Description.PinBitCount.Bit16 => 16,
+				DLS.Description.PinBitCount.Bit32 => 32,
+				DLS.Description.PinBitCount.Bit64 => 64,
+				_ => 1
+			};
+		}
+
+		// Helper method to calculate wire thickness based on bit count
+		public static float GetWireThickness(DLS.Description.PinBitCount bitCount, bool highlighted = false)
+		{
+			float pinHeight = GetPinHeightFromBitCount(bitCount);
+			float baseThickness = pinHeight * .25f;
+
+			return highlighted ? baseThickness + 0.012f : baseThickness/GetBitNumberFromBitCount(bitCount);
+		}
 
 		// ---- UI draw settings ----
 		public const float PanelUIPadding = 1.15f * 2;
