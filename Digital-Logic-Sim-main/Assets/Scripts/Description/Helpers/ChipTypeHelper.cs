@@ -13,8 +13,10 @@ namespace DLS.Description
 			{ ChipType.EdgeFunction, "EDGE FUNCTION " },
 			{ ChipType.ColorInterpolationMath, "Color Interpolation Math" },
 			{ ChipType.EdgeFunction3Merge32Bit, "EDGE FUNCTION 3-MERGE 32-BIT" },
-			{ ChipType.EdgeFunction3Merge32BitCHUNK, "EDGE FUNCTION 3-MERGE 32-BIT CHUNK" },
 			{ ChipType.SolidStateDrive, "Solid State Drive" },
+			{ ChipType.Addition32, "Addition32" },
+			{ ChipType.Multiplication32, "Multiplication32" },
+			{ ChipType.Division32, "Division32" },
 			// ---- Basic Chips ----
 			{ ChipType.Nand, "NAND" },
 			{ ChipType.Clock, "CLOCK" },

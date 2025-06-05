@@ -129,11 +129,13 @@ namespace DLS.Game
 				CreateDisplayLED(),
 				CreateDisplay1080RGB8bit(),
 				// ---- Built in items for computer----
-				CreateEdgeFunction3Merge32BitCHUNK(),
-				CreateEdgeFunction3Merge32Bit(),
 				CreateEdgeFunction(),
 				CreateColorInterpolationMath(),
 				CreateSolidStateDrive(),
+				// ---- Math Operations ----
+				CreateAddition32(),
+				CreateMultiplication32(),
+				CreateDivision32(),
 				// ---- Bus ----
 				CreateBus(PinBitCount.Bit1),
 				CreateBusTerminus(PinBitCount.Bit1),
@@ -343,7 +345,7 @@ namespace DLS.Game
 		static ChipDescription CreateDisplay1080RGB8bit()
 		{
 			float height = GridSize * 86;
-			float width = height * 18/9; // 16:9 aspect ratio for 1920x1080
+			float width = height * 18 / 9; // 16:9 aspect ratio for 1920x1080
 			float displayWidth = height - GridSize * 2;
 
 			Color col = new(0.1f, 0.1f, 0.1f);
@@ -422,7 +424,7 @@ namespace DLS.Game
 		static ChipDescription CreateEdgeFunction()
 		{
 			Color col = new Color(0.992f, 0.667f, 0.071f); // #FDAA12
-			
+
 			PinDescription[] inputPins =
 			{
 				CreatePinDescription("BY", 5, PinBitCount.Bit4),
@@ -432,18 +434,18 @@ namespace DLS.Game
 				CreatePinDescription("Y", 1, PinBitCount.Bit4),
 				CreatePinDescription("X", 0, PinBitCount.Bit4),
 			};
-			
+
 			PinDescription[] outputPins = { CreatePinDescription("OUT", 6, PinBitCount.Bit16) };
-			
+
 			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + .75f);
-			
+
 			return CreateBuiltinChipDescription(ChipType.EdgeFunction, size, col, inputPins, outputPins);
 		}
-		
+
 		static ChipDescription CreateEdgeFunction3Merge32Bit()
 		{
 			Color col = new Color(0.992f, 0.667f, 0.071f); // #FDAA12
-			
+
 			PinDescription[] inputPins =
 			{
 				CreatePinDescription("CY", 11, PinBitCount.Bit32),
@@ -455,11 +457,11 @@ namespace DLS.Game
 				CreatePinDescription("Y", 1, PinBitCount.Bit32),
 				CreatePinDescription("X", 0, PinBitCount.Bit32),
 			};
-			
+
 			PinDescription[] outputPins = { CreatePinDescription("OUT", 12, PinBitCount.Bit1) };
 
 			Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins) + .75f);
-			
+
 			return CreateBuiltinChipDescription(ChipType.EdgeFunction3Merge32Bit, size, col, inputPins, outputPins);
 		}
 
@@ -565,15 +567,15 @@ namespace DLS.Game
 
 				CreatePinDescription("Clear All", 1, PinBitCount.Bit1),
 			};
-			
+
 			PinDescription[] outputPins = {
 				CreatePinDescription("RED", 44, PinBitCount.Bit4),
 				CreatePinDescription("GREEN", 43, PinBitCount.Bit4),
 				CreatePinDescription("BLUE", 42, PinBitCount.Bit4)
 			};
-			
+
 			Vector2 size = new(GridSize * 23, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(ChipType.SolidStateDrive, size, col, inputPins, outputPins);
 		}
 
@@ -734,126 +736,144 @@ namespace DLS.Game
 		static ChipDescription CreateBasicLogicGate(ChipType chipType, string gateName, PinBitCount bitCount)
 		{
 			Color col = new(0.4f, 0.6f, 0.8f);
-			
+
 			PinDescription[] inputPins;
 			PinDescription[] outputPins = { CreatePinDescription("OUT", 2, bitCount) };
-			
+
 			if (gateName == "NOT")
 			{
 				inputPins = new[] { CreatePinDescription("IN", 0, bitCount) };
 			}
 			else
 			{
-				inputPins = new[] 
-				{ 
+				inputPins = new[]
+				{
 					CreatePinDescription("IN A", 0, bitCount),
 					CreatePinDescription("IN B", 1, bitCount)
 				};
 			}
-			
+
 			Vector2 size = new(GridSize * 8, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
 		}
 
 		static ChipDescription CreateBuiltinTristateBuffer(ChipType chipType, PinBitCount bitCount)
 		{
 			Color col = new(0.4f, 0.6f, 0.8f);
-			
-			PinDescription[] inputPins = 
-			{ 
+
+			PinDescription[] inputPins =
+			{
 				CreatePinDescription("IN", 0, bitCount),
 				CreatePinDescription("ENABLE", 1)
 			};
 			PinDescription[] outputPins = { CreatePinDescription("OUT", 2, bitCount) };
-			
+
 			Vector2 size = new(GridSize * 8, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
 		}
 
 		static ChipDescription CreateCounter(ChipType chipType, PinBitCount bitCount)
 		{
 			Color col = new(0.8f, 0.6f, 0.2f);
-			
-			PinDescription[] inputPins = 
+
+			PinDescription[] inputPins =
 			{
 				CreatePinDescription("CLOCK", 0),
 				CreatePinDescription("RESET", 1)
 			};
 			PinDescription[] outputPins = { CreatePinDescription("COUNT", 2, bitCount) };
-			
+
 			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
 		}
 
 		static ChipDescription CreateEquals(ChipType chipType, PinBitCount bitCount)
 		{
 			Color col = new(0.6f, 0.8f, 0.4f);
-			
-			PinDescription[] inputPins = 
+
+			PinDescription[] inputPins =
 			{
 				CreatePinDescription("IN A", 0, bitCount),
 				CreatePinDescription("IN B", 1, bitCount)
 			};
 			PinDescription[] outputPins = { CreatePinDescription("EQUAL", 2) };
-			
+
 			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
 		}
 
 		static ChipDescription CreateFirstTick()
 		{
 			Color col = new(0.8f, 0.4f, 0.6f);
-			
-			PinDescription[] inputPins = 
+
+			PinDescription[] inputPins =
 			{
 				CreatePinDescription("ON", 0),
 				CreatePinDescription("RESET", 1),
 				CreatePinDescription("CLOCK", 2)
 			};
 			PinDescription[] outputPins = { CreatePinDescription("FIRST TICK", 3) };
-			
+
 			Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
-			
+
 			return CreateBuiltinChipDescription(ChipType.B_FirstTick, size, col, inputPins, outputPins);
 		}
-
-		static ChipDescription CreateEdgeFunction3Merge32BitCHUNK()
+		static ChipDescription CreateMath(ChipType chipType, PinBitCount bitCount)
 		{
-			Color col = new Color(0.992f, 0.667f, 0.071f); // #FDAA12
+			Color col = new(0.2f, 0.8f, 0.6f); // Teal color for math operations
 			
-			// Input pins: 8 coordinate pins + 1080 sets of triangle coordinates (8 pins each)
-			List<PinDescription> inputPins = new List<PinDescription>();
-			
-			// Common coordinate inputs (X, Y, AX, AY, BX, BY, CX, CY)
-			inputPins.Add(CreatePinDescription("X", 0, PinBitCount.Bit32));
-			inputPins.Add(CreatePinDescription("Y", 1, PinBitCount.Bit32));
-			
-			// Triangle coordinates for each of the 1080 instances
-			int pinId = 2;
-			for (int i = 0; i < 1080; i++)
+			string operationName = chipType switch
 			{
-				inputPins.Add(CreatePinDescription($"AX{i}", pinId++, PinBitCount.Bit32));
-				inputPins.Add(CreatePinDescription($"AY{i}", pinId++, PinBitCount.Bit32));
-				inputPins.Add(CreatePinDescription($"BX{i}", pinId++, PinBitCount.Bit32));
-				inputPins.Add(CreatePinDescription($"BY{i}", pinId++, PinBitCount.Bit32));
-				inputPins.Add(CreatePinDescription($"CX{i}", pinId++, PinBitCount.Bit32));
-				inputPins.Add(CreatePinDescription($"CY{i}", pinId++, PinBitCount.Bit32));
-			}
-			
-			// Output pins: 1080 1-bit outputs
-			PinDescription[] outputPins = new PinDescription[1080];
-			for (int i = 0; i < 1080; i++)
+				ChipType.Addition32 => "ADD",
+				ChipType.Multiplication32 => "MUL", 
+				ChipType.Division32 => "DIV",
+				_ => "MATH"
+			};
+
+			PinDescription[] inputPins =
 			{
-				outputPins[i] = CreatePinDescription($"OUT{i}", pinId++, PinBitCount.Bit1);
-			}
-			
-			Vector2 size = new(GridSize * 50, GridSize * 200); // Large size to accommodate many pins
-			
-			return CreateBuiltinChipDescription(ChipType.EdgeFunction3Merge32BitCHUNK, size, col, inputPins.ToArray(), outputPins);
+				CreatePinDescription("A", 0, bitCount),
+				CreatePinDescription("B", 1, bitCount)
+			};
+			PinDescription[] outputPins = { CreatePinDescription("OUT", 2, bitCount) };
+
+			Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+
+			return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
 		}
+		
+		static ChipDescription CreateAddition32()
+		{
+			return CreateMath(ChipType.Addition32, PinBitCount.Bit32);
+		}
+		
+		static ChipDescription CreateMultiplication32()
+		{
+			return CreateMath(ChipType.Multiplication32, PinBitCount.Bit32);
+		}
+		
+		static ChipDescription CreateDivision32()
+		{
+			Color col = new(0.2f, 0.8f, 0.6f); // Teal color for math operations
+
+			PinDescription[] inputPins =
+			{
+				CreatePinDescription("A", 0, PinBitCount.Bit32),
+				CreatePinDescription("B", 1, PinBitCount.Bit32)
+			};
+			PinDescription[] outputPins = { 
+				CreatePinDescription("QUOTIENT", 2, PinBitCount.Bit32),
+				CreatePinDescription("REMAINDER", 3, PinBitCount.Bit32)
+			};
+
+			Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+
+			return CreateBuiltinChipDescription(ChipType.Division32, size, col, inputPins, outputPins);
+		}
+
 	}
 }

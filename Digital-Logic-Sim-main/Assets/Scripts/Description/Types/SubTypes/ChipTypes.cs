@@ -7,9 +7,11 @@ namespace DLS.Description
 		// ---- Bulit in computer chips ----
 		EdgeFunction,
 		EdgeFunction3Merge32Bit,
-		EdgeFunction3Merge32BitCHUNK,
 		ColorInterpolationMath,
 		SolidStateDrive,
+		Multiplication32,
+		Division32,
+		Addition32,
 
 		// ---- Basic Chips ----
 		Nand,

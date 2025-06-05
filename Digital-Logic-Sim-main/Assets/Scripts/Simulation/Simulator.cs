@@ -828,6 +828,62 @@ namespace DLS.Simulation
 					break;
 				}
 
+				case ChipType.Addition32:
+				{
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Get 32-bit values
+					ulong valueA = PinState.GetBitStates(inputA) & 0xFFFFFFFF;
+					ulong valueB = PinState.GetBitStates(inputB) & 0xFFFFFFFF;
+					
+					// Perform addition with overflow handling
+					ulong result = (valueA + valueB) & 0xFFFFFFFF;
+					
+					chip.OutputPins[0].State = result;
+					break;
+				}
+				
+				case ChipType.Multiplication32:
+				{
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Get 32-bit values
+					ulong valueA = PinState.GetBitStates(inputA) & 0xFFFFFFFF;
+					ulong valueB = PinState.GetBitStates(inputB) & 0xFFFFFFFF;
+					
+					// Perform multiplication with overflow handling
+					ulong result = (valueA * valueB) & 0xFFFFFFFF;
+					
+					chip.OutputPins[0].State = result;
+					break;
+				}
+				
+				case ChipType.Division32:
+				{
+					ulong inputA = chip.InputPins[0].State;
+					ulong inputB = chip.InputPins[1].State;
+					
+					// Get 32-bit values
+					ulong valueA = PinState.GetBitStates(inputA) & 0xFFFFFFFF;
+					ulong valueB = PinState.GetBitStates(inputB) & 0xFFFFFFFF;
+					
+					// Handle division by zero
+					ulong quotient = 0;
+					ulong remainder = 0;
+					if (valueB != 0)
+					{
+						quotient = valueA / valueB;
+						remainder = valueA % valueB;
+					}
+					
+					chip.OutputPins[0].State = quotient & 0xFFFFFFFF;  // Quotient output
+					chip.OutputPins[1].State = remainder & 0xFFFFFFFF; // Remainder output
+					break;
+				}
+
+
 				// ---- Basic Logic Gates ----
 				case ChipType.B_And_1Bit:
 				case ChipType.B_And_4Bit:
@@ -1110,49 +1166,6 @@ namespace DLS.Simulation
 					
 					// Output 1 bit: high if same sign, low otherwise
 					chip.OutputPins[0].State = sameSign ? PinState.LogicHigh : PinState.LogicLow;
-					break;
-				}
-				case ChipType.EdgeFunction3Merge32BitCHUNK:
-				{
-					// Get common X and Y coordinates
-					ulong x = PinState.GetBitStates(chip.InputPins[0].State);   // X
-					ulong y = PinState.GetBitStates(chip.InputPins[1].State);   // Y
-					
-					// Process each of the 1080 triangles
-					for (int i = 0; i < 1080; i++)
-					{
-						// Calculate pin indices for this triangle (starting after X and Y pins)
-						int baseIndex = 2 + (i * 6);
-						
-						// Get triangle coordinates for this instance
-						ulong ax = PinState.GetBitStates(chip.InputPins[baseIndex + 0].State);     // AX
-						ulong ay = PinState.GetBitStates(chip.InputPins[baseIndex + 1].State);     // AY
-						ulong bx = PinState.GetBitStates(chip.InputPins[baseIndex + 2].State);     // BX
-						ulong by = PinState.GetBitStates(chip.InputPins[baseIndex + 3].State);     // BY
-						ulong cx = PinState.GetBitStates(chip.InputPins[baseIndex + 4].State);     // CX
-						ulong cy = PinState.GetBitStates(chip.InputPins[baseIndex + 5].State);     // CY
-						
-						// Calculate E1(x, y) = (x - Ax) * (By - Ay) - (y - Ay) * (Bx - Ax)
-						long e1_term1 = (long)((x - ax) * (by - ay));
-						long e1_term2 = (long)((y - ay) * (bx - ax));
-						long e1 = e1_term1 - e1_term2;
-						
-						// Calculate E2(x, y) = (x - Bx) * (Cy - By) - (y - By) * (Cx - Bx)
-						long e2_term1 = (long)((x - bx) * (cy - by));
-						long e2_term2 = (long)((y - by) * (cx - bx));
-						long e2 = e2_term1 - e2_term2;
-						
-						// Calculate E3(x, y) = (x - Cx) * (Ay - Cy) - (y - Cy) * (Ax - Cx)
-						long e3_term1 = (long)((x - cx) * (ay - cy));
-						long e3_term2 = (long)((y - cy) * (ax - cx));
-						long e3 = e3_term1 - e3_term2;
-						
-						// Check if all three edge functions have the same sign
-						bool sameSign = (e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 < 0 && e2 < 0 && e3 < 0);
-						
-						// Set output for this triangle
-						chip.OutputPins[i].State = sameSign ? PinState.LogicHigh : PinState.LogicLow;
-					}
 					break;
 				}
 				case ChipType.Merge_1To16Bit:
