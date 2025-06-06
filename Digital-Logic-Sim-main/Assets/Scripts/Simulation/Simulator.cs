@@ -591,7 +591,6 @@ namespace DLS.Simulation
 						// Clear back buffer
 						if (PinState.FirstBitHigh(resetPin))
 						{
-							Random rnd = new Random();
 							for (int i = 0; i < pixelCount; i++)
 							{
 									chip.InternalState[i] = 0;
@@ -1121,6 +1120,7 @@ namespace DLS.Simulation
 					chip.OutputPins[0].State = areEqual ? PinState.LogicHigh : PinState.LogicLow;
 					break;
 				}
+
 
 				case ChipType.B_FirstTick:
 				{
