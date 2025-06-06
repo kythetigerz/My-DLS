@@ -588,32 +588,33 @@ namespace DLS.Simulation
 
 					if (isRisingEdge)
 					{
-						// Clear back buffer
+							// Clear back buffer
+						
 						if (PinState.FirstBitHigh(resetPin))
-						{
-							for (int i = 0; i < pixelCount; i++)
 							{
+								for (int i = 0; i < pixelCount; i++)
+								{
 									chip.InternalState[i] = 0;
+								}
 							}
-						}
-						// Write to back-buffer
-						else if (PinState.FirstBitHigh(writePin))
-						{
-							// Get the full 32-bit address value
-							ulong addressIndex = PinState.GetBitStates(addressPin);
-							
-							// Ensure address is within bounds
-							if (addressIndex < pixelCount)
+							// Write to back-buffer
+							else if (PinState.FirstBitHigh(writePin))
 							{
-								// Combine 8-bit RGB values into a 24-bit color value
-								ulong data = (uint)(
-									PinState.GetBitStates(redPin) | 
-									(PinState.GetBitStates(greenPin) << 8) | 
-									(PinState.GetBitStates(bluePin) << 16)
-								);
-								chip.InternalState[addressIndex] = data;
+								// Get the full 32-bit address value
+								ulong addressIndex = PinState.GetBitStates(addressPin);
+
+								// Ensure address is within bounds
+								if (addressIndex < pixelCount)
+								{
+									// Combine 8-bit RGB values into a 24-bit color value
+									ulong data = (uint)(
+										PinState.GetBitStates(redPin) |
+										(PinState.GetBitStates(greenPin) << 8) |
+										(PinState.GetBitStates(bluePin) << 16)
+									);
+									chip.InternalState[addressIndex] = data;
+								}
 							}
-						}
 
 						// Copy back-buffer to display buffer
 						if (PinState.FirstBitHigh(refreshPin))
