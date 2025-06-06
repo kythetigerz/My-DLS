@@ -1076,8 +1076,23 @@ namespace DLS.Simulation
 
 					if (isRisingEdge)
 					{
-						ulong maxValue = chip.ChipType == ChipType.B_Counter_4Bit ? 15u : 255u;
-						chip.InternalState[0] = (chip.InternalState[0] + 1) % (maxValue + 1);
+						if (chip.ChipType == ChipType.B_Counter_64Bit)
+						{
+							// Handle 64-bit counter separately to avoid overflow
+							chip.InternalState[0] = chip.InternalState[0] + 1;
+						}
+						else
+						{
+							ulong maxValue = chip.ChipType switch
+							{
+								ChipType.B_Counter_4Bit => 15u,           // 2^4 - 1
+								ChipType.B_Counter_8Bit => 255u,          // 2^8 - 1
+								ChipType.B_Counter_16Bit => 65535u,       // 2^16 - 1
+								ChipType.B_Counter_32Bit => 4294967295u,  // 2^32 - 1
+								_ => 255u
+							};
+							chip.InternalState[0] = (chip.InternalState[0] + 1) % (maxValue + 1);
+						}
 					}
 					chip.OutputPins[0].State = chip.InternalState[0];
 					break;
@@ -1092,7 +1107,15 @@ namespace DLS.Simulation
 					ulong inputA = chip.InputPins[0].State;
 					ulong inputB = chip.InputPins[1].State;
 					
-					ulong mask = chip.ChipType == ChipType.B_Equals_4Bit ? 0xFUL : 0xFFUL;
+					ulong mask = chip.ChipType switch
+					{
+						ChipType.B_Equals_4Bit => 0xFUL,           // 4 bits
+						ChipType.B_Equals_8Bit => 0xFFUL,          // 8 bits
+						ChipType.B_Equals_16Bit => 0xFFFFUL,       // 16 bits
+						ChipType.B_Equals_32Bit => 0xFFFFFFFFUL,   // 32 bits
+						ChipType.B_Equals_64Bit => 0xFFFFFFFFFFFFFFFFUL, // 64 bits (ulong.MaxValue)
+						_ => 0xFFUL
+					};
 					
 					bool areEqual = (inputA & mask) == (inputB & mask);
 					chip.OutputPins[0].State = areEqual ? PinState.LogicHigh : PinState.LogicLow;
