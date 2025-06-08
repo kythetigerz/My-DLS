@@ -795,23 +795,23 @@ namespace DLS.Simulation
 					{
 						// Compute floating‐point barycentric “areas” from your 16-bit inputs:
 						// BCP/ABC → weight for A, etc.
-						double weightA = (double)(long)bcp / abc;
-						double weightB = (double)(long)cap / abc;
-						double weightC = (double)(long)abp / abc;
+						double weightA = (long)bcp / abc;
+						double weightB = (long)cap / abc;
+						double weightC = (long)abp / abc;
 
 						// Now interpolate each channel in floating point
 						// colourAR, colourAG, colourAB, etc. are 0…15
-						redF   = (double)(long)colourAR * weightA
-							+ (double)(long)colourBR * weightB
-							+ (double)(long)colourCR * weightC;
+						redF   = (long)colourAR * weightA
+							+ (long)colourBR * weightB
+							+ (long)colourCR * weightC;
 
-						greenF = (double)(long)colourAG * weightA
-							+ (double)(long)colourBG * weightB
-							+ (double)(long)colourCG * weightC;
+						greenF = (long)colourAG * weightA
+							+ (long)colourBG * weightB
+							+ (long)colourCG * weightC;
 
-						blueF  = (double)(long)colourAB * weightA
-							+ (double)(long)colourBB * weightB
-							+ (double)(long)colourCB * weightC;
+						blueF  = (long)colourAB * weightA
+							+ (long)colourBB * weightB
+							+ (long)colourCB * weightC;
 					}
 
 					// Step 4: clamp each channel to [0,15] and convert back to ulong
