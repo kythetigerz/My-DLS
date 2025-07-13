@@ -1,0 +1,100 @@
+{
+  "DLSVersion": "2.1.5",
+  "Name": "mouse",
+  "NameLocation": 0,
+  "ChipType": 0,
+  "Size": {
+    "x": 1.325,
+    "y": 0.375
+  },
+  "Colour": {
+    "r": 0.8574435,
+    "g": 0.821602941,
+    "b": 0.533149838,
+    "a": 1
+  },
+  "InputPins":[],
+  "OutputPins":[],
+  "SubChips":[
+    {
+      "Name":"KEY",
+      "ID":1575446977,
+      "Label":"",
+      "Position":{
+        "x":4.00914,
+        "y":-0.85857
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[57861]
+    },
+    {
+      "Name":"KEY",
+      "ID":785758603,
+      "Label":"",
+      "Position":{
+        "x":5.62304,
+        "y":-0.85857
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[22176]
+    },
+    {
+      "Name":"KEY",
+      "ID":488756999,
+      "Label":"",
+      "Position":{
+        "x":4.83667,
+        "y":-1.31174
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[63695]
+    },
+    {
+      "Name":"KEY",
+      "ID":593271969,
+      "Label":"side 2",
+      "Position":{
+        "x":3.88959,
+        "y":-2.11564
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[46974]
+    },
+    {
+      "Name":"KEY",
+      "ID":216098040,
+      "Label":"side 1",
+      "Position":{
+        "x":3.88959,
+        "y":-1.55929
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[46974]
+    },
+    {
+      "Name":"KEY",
+      "ID":624145927,
+      "Label":"scroll up",
+      "Position":{
+        "x":4.83667,
+        "y":-0.75073
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[46974]
+    },
+    {
+      "Name":"KEY",
+      "ID":181810794,
+      "Label":"scroll down",
+      "Position":{
+        "x":4.83667,
+        "y":-1.82633
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":0}],
+      "InternalData":[46974]
+    }
+  ],
+  "Wires":[],
+  "Displays":[],
+  "FreezePinEnabled": false
+}

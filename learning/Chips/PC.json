@@ -1,0 +1,165 @@
+{
+  "DLSVersion": "2.1.5",
+  "Name": "PC",
+  "NameLocation": 0,
+  "ChipType": 0,
+  "Size": {
+    "x": 1.3362,
+    "y": 1.125
+  },
+  "Colour": {
+    "r": 0.12921381,
+    "g": 0.228059292,
+    "b": 0.0618356653,
+    "a": 1
+  },
+  "InputPins":[
+    {
+      "Name":"CLOCK",
+      "ID":84985178,
+      "Position":{
+        "x":-2.3055,
+        "y":-3.31076
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "OutputPins":[
+    {
+      "Name":"adress",
+      "ID":1084819566,
+      "Position":{
+        "x":8.68006,
+        "y":-1.46423
+      },
+      "BitCount":8,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "SubChips":[
+    {
+      "Name":"8 bit adder",
+      "ID":1365462446,
+      "Label":"",
+      "Position":{
+        "x":2.67148,
+        "y":-1.48514
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":442735386},{"PinColour":0,"PinID":1983135233}],
+      "InternalData":null
+    },
+    {
+      "Name":"NAND",
+      "ID":1590540382,
+      "Label":"",
+      "Position":{
+        "x":-1.35461,
+        "y":-2.46854
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":2}],
+      "InternalData":null
+    },
+    {
+      "Name":"8 BIT REGISTER S",
+      "ID":1017725339,
+      "Label":"",
+      "Position":{
+        "x":4.95881,
+        "y":-1.88427
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":890089580}],
+      "InternalData":null
+    }
+  ],
+  "Wires":[
+    {
+      "SourcePinAddress":{
+        "PinID":2,
+        "PinOwnerID":1590540382
+      },
+      "TargetPinAddress":{
+        "PinID":88247146,
+        "PinOwnerID":1365462446
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":-0.39695,"y":-2.46793},{"x":-0.39695,"y":-2.85569},{"x":0.94357,"y":-2.85569},{"x":0.94357,"y":-1.98514},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":1983135233,
+        "PinOwnerID":1365462446
+      },
+      "TargetPinAddress":{
+        "PinID":1353015596,
+        "PinOwnerID":1017725339
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":2,
+        "PinOwnerID":1590540382
+      },
+      "TargetPinAddress":{
+        "PinID":1242643841,
+        "PinOwnerID":1017725339
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":-0.39695,"y":-2.46793},{"x":-0.39695,"y":-2.85569},{"x":3.48814,"y":-2.85569},{"x":3.48814,"y":-2.32928},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":0,
+        "PinOwnerID":84985178
+      },
+      "TargetPinAddress":{
+        "PinID":1415299757,
+        "PinOwnerID":1017725339
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":3.85492,"y":-3.31076},{"x":3.85492,"y":-2.70627},{"x":3.85987,"y":-2.70636},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":890089580,
+        "PinOwnerID":1017725339
+      },
+      "TargetPinAddress":{
+        "PinID":0,
+        "PinOwnerID":1084819566
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":6.1291,"y":-1.88427},{"x":6.1291,"y":-1.48839},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":890089580,
+        "PinOwnerID":1017725339
+      },
+      "TargetPinAddress":{
+        "PinID":1477663771,
+        "PinOwnerID":1365462446
+      },
+      "ConnectionType":1,
+      "ConnectedWireIndex":4,
+      "ConnectedWireSegmentIndex":2,
+      "Points":[{"x":6.22415,"y":-1.48678},{"x":6.22415,"y":-0.06967},{"x":1.53191,"y":-0.06967},{"x":1.53191,"y":-1.06145},{"x":0.0,"y":0.0}]
+    }
+  ],
+  "Displays":[],
+  "FreezePinEnabled": false
+}
