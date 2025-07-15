@@ -72,6 +72,8 @@ namespace DLS.Description
 			{ ChipType.B_Equals_16Bit, "B-EQUALS-16" },
 			{ ChipType.B_Equals_32Bit, "B-EQUALS-32" },
 			{ ChipType.B_Equals_64Bit, "B-EQUALS-64" },
+			// ---- Decoders ----
+			{ ChipType.B_Decoder_8Bit, "B-DECODER-8" },
 			// ---- Utility ----
 			{ ChipType.B_FirstTick, "B-FIRST-TICK" },
 			// ---- Memory ----

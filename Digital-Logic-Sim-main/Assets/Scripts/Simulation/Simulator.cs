@@ -1180,6 +1180,34 @@ namespace DLS.Simulation
                                         break;
                                 }
 
+                                case ChipType.B_Decoder_8Bit:
+                                {
+                                        ulong inputValue = chip.InputPins[0].State;
+                                        
+                                        // Check if input is tristate (disconnected)
+                                        ulong tristateFlags = PinState.GetTristateFlags(inputValue);
+                                        
+                                        // If input is tristate, treat as 0
+                                        ulong decodedValue = tristateFlags != 0 ? 0 : PinState.GetBitStates(inputValue);
+                                        
+                                        // Mask to 8 bits (0-255)
+                                        decodedValue &= 0xFF;
+                                        
+                                        // Set all outputs to low first
+                                        for (int i = 0; i < chip.OutputPins.Length; i++)
+                                        {
+                                                chip.OutputPins[i].State = PinState.LogicLow;
+                                        }
+                                        
+                                        // Set only the selected output to high
+                                        if (decodedValue < (ulong)chip.OutputPins.Length)
+                                        {
+                                                chip.OutputPins[decodedValue].State = PinState.LogicHigh;
+                                        }
+                                        
+                                        break;
+                                }
+
 
                                 case ChipType.B_FirstTick:
                                 {

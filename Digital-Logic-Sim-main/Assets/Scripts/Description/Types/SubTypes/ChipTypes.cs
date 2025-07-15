@@ -72,6 +72,9 @@ namespace DLS.Description
 		B_Equals_32Bit,
 		B_Equals_64Bit,
 
+		// ---- Decoders ----
+		B_Decoder_8Bit,
+
 		// ---- Utility ----
 		B_FirstTick,
 

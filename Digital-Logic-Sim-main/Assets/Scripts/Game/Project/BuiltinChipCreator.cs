@@ -83,6 +83,8 @@ namespace DLS.Game
                                 CreateEquals(ChipType.B_Equals_16Bit, PinBitCount.Bit16),
                                 CreateEquals(ChipType.B_Equals_32Bit, PinBitCount.Bit32),
                                 CreateEquals(ChipType.B_Equals_64Bit, PinBitCount.Bit64),
+                                // ---- Decoders ----
+                                CreateDecoder8Bit(),
                                 // ---- Utility ----
                                 CreateFirstTick(),
                                 // ---- Memory ----
@@ -827,6 +829,27 @@ namespace DLS.Game
 				Vector2 size = new(GridSize * 10, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
 
 				return CreateBuiltinChipDescription(chipType, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateDecoder8Bit()
+		{
+				Color col = new(0.4f, 0.7f, 0.9f);
+
+				PinDescription[] inputPins =
+				{
+						CreatePinDescription("INPUT", 0, PinBitCount.Bit8)
+				};
+				
+				// Create 256 output pins (2^8 = 256)
+				PinDescription[] outputPins = new PinDescription[256];
+				for (int i = 0; i < 256; i++)
+				{
+						outputPins[i] = CreatePinDescription($"OUT{i}", i + 1, PinBitCount.Bit1);
+				}
+
+				Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+
+				return CreateBuiltinChipDescription(ChipType.B_Decoder_8Bit, size, col, inputPins, outputPins);
 		}
 
 		static ChipDescription CreateFirstTick()
