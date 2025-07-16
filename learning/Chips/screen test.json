@@ -162,7 +162,7 @@
       "InternalData":null
     },
     {
-      "Name":"8 bit random",
+      "Name":"RANDOM 8",
       "ID":1936284729,
       "Label":"",
       "Position":{
@@ -173,7 +173,7 @@
       "InternalData":null
     },
     {
-      "Name":"8 bit random",
+      "Name":"RANDOM 8",
       "ID":1952873688,
       "Label":"",
       "Position":{
@@ -184,7 +184,7 @@
       "InternalData":null
     },
     {
-      "Name":"8 bit random",
+      "Name":"RANDOM 8",
       "ID":2072219182,
       "Label":"",
       "Position":{
@@ -577,7 +577,7 @@
       "ConnectionType":1,
       "ConnectedWireIndex":23,
       "ConnectedWireSegmentIndex":0,
-      "Points":[{"x":-1.69972,"y":-0.4981},{"x":-1.70202,"y":-0.73265},{"x":0.0,"y":0.0}]
+      "Points":[{"x":-2.29642,"y":-0.51533},{"x":-1.70202,"y":-0.73265},{"x":0.0,"y":0.0}]
     },
     {
       "SourcePinAddress":{
@@ -591,7 +591,7 @@
       "ConnectionType":1,
       "ConnectedWireIndex":12,
       "ConnectedWireSegmentIndex":2,
-      "Points":[{"x":-7.01043,"y":0.35041},{"x":-7.01126,"y":-0.98265},{"x":0.0,"y":0.0}]
+      "Points":[{"x":-7.01815,"y":0.36281},{"x":-7.01126,"y":-0.98265},{"x":0.0,"y":0.0}]
     },
     {
       "SourcePinAddress":{
