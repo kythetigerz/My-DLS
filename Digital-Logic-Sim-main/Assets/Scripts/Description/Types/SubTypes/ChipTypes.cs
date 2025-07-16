@@ -81,6 +81,7 @@ namespace DLS.Description
 		// ---- Memory ----
 		dev_Ram_8Bit,
 		Rom_256x16,
+		Stack_8Bit,
 
 		// ---- Displays ----
 		SevenSegmentDisplay,

@@ -86,6 +86,20 @@ namespace DLS.Simulation
 					InternalState[i] = BitConverter.ToUInt32(randomBytes);
 				}
 			}
+			else if (ChipType is ChipType.Stack_8Bit)
+			{
+				// [0-255] = stack registers, [256] = stack pointer, [257] = clock state
+				InternalState = new ulong[addressSize_8Bit + 2];
+				
+				// Initialize stack registers to zero
+				for (int i = 0; i < addressSize_8Bit; i++)
+				{
+					InternalState[i] = 0;
+				}
+				
+				InternalState[256] = 0; // Stack pointer starts at 0 (empty stack)
+				InternalState[257] = 0; // Previous clock state starts low
+			}
 			else if (ChipType is ChipType.B_Counter_4Bit or ChipType.B_Counter_8Bit or ChipType.B_Counter_16Bit or ChipType.B_Counter_32Bit or ChipType.B_Counter_64Bit)
 			{
 				// [0] = counter value, [1] = previous clock state

@@ -791,6 +791,56 @@ namespace DLS.Simulation
                                         chip.OutputPins[1].State = (ushort)(data & ByteMask);
                                         break;
                                 }
+                                case ChipType.Stack_8Bit:
+                                {
+                                        ulong dataPin = chip.InputPins[0].State;
+                                        ulong pushPin = chip.InputPins[1].State;
+                                        ulong popPin = chip.InputPins[2].State;
+                                        ulong clockPin = chip.InputPins[3].State;
+
+                                        // Detect clock rising edge
+                                        bool clockHigh = PinState.FirstBitHigh(clockPin);
+                                        bool isRisingEdge = clockHigh && chip.InternalState[257] == 0;
+                                        chip.InternalState[257] = clockHigh ? 1u : 0;
+
+                                        // Stack pointer is stored in InternalState[256] (index 0-255 are stack registers)
+                                        // Stack grows upward, so SP points to next available slot
+                                        if (isRisingEdge)
+                                        {
+                                                bool pushHigh = PinState.FirstBitHigh(pushPin);
+                                                bool popHigh = PinState.FirstBitHigh(popPin);
+                                                
+                                                if (pushHigh && !popHigh)
+                                                {
+                                                        // Push operation - only if stack is not full
+                                                        if (chip.InternalState[256] < 256)
+                                                        {
+                                                                chip.InternalState[chip.InternalState[256]] = PinState.GetBitStates(dataPin);
+                                                                chip.InternalState[256]++; // Increment stack pointer
+                                                        }
+                                                }
+                                                else if (popHigh && !pushHigh)
+                                                {
+                                                        // Pop operation - only if stack is not empty
+                                                        if (chip.InternalState[256] > 0)
+                                                        {
+                                                                chip.InternalState[256]--; // Decrement stack pointer
+                                                        }
+                                                }
+                                        }
+
+                                        // Output top of stack (register 1, or 0 if empty)
+                                        if (chip.InternalState[256] > 0)
+                                        {
+                                                chip.OutputPins[0].State = (ushort)chip.InternalState[chip.InternalState[256] - 1];
+                                        }
+                                        else
+                                        {
+                                                chip.OutputPins[0].State = 0;
+                                        }
+
+                                        break;
+                                }
                                 // Bulit in stuff
                                 case ChipType.EdgeFunction:
                                 {
@@ -1199,10 +1249,12 @@ namespace DLS.Simulation
                                                 chip.OutputPins[i].State = PinState.LogicLow;
                                         }
                                         
-                                        // Set only the selected output to high
+                                        // Set only the selected output to high (in reverse order)
+                                        // Input 0 activates the bottom pin, input 255 activates the top pin
                                         if (decodedValue < (ulong)chip.OutputPins.Length)
                                         {
-                                                chip.OutputPins[decodedValue].State = PinState.LogicHigh;
+                                                int reversedIndex = chip.OutputPins.Length - 1 - (int)decodedValue;
+                                                chip.OutputPins[reversedIndex].State = PinState.LogicHigh;
                                         }
                                         
                                         break;
