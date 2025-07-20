@@ -1,0 +1,110 @@
+KEYS:
+W,
+A,
+S,
+D
+
+REGISTERS:
+A,
+B,
+C,
+D,
+X,
+Y
+
+Math operations:
+	-- addition
+	-- subtraction
+	-- multiplication
+	-- division
+	-- nand
+	-- and
+	-- not
+	-- or
+	-- nor
+	-- xor
+	-- xnor
+	-- Compare
+	-- Compare Signed
+
+JUMP TYPES:
+    -- JUMP: 00
+    -- ZERO: 01
+    -- CARRY: 10
+    -- KEY: 11
+    -- ANY KEY: F
+
+KEYS, REGISTERS, and Math Operations all go from zero to amount of items in it and from top to bottom
+
+Value Types (hardware):
+	-- Register: 00
+	-- Built In Value: 01
+	-- Ram Address: 10
+
+Stack Types:
+     -- Push: 00
+     -- Pop: 01
+
+Stacks:
+     -- Return stack: 00
+     -- Function parameters stack: 01
+     -- General purpose stack: 10
+
+null: all zeros, but doesn't matter
+outReg: where it outputs to
+...Type: Value type
+reg: register to put data
+addrs: the RAM or screen address to use
+key: which key to check
+jmptype: which jump type to use
+(2B)/(4B): specifics how many bits in each section
+stack: which stack to push onto or pop out of
+reg(for stack): which register to push (or pop, matters on type) from (0xF means no register, for push it would instead do data))
+type(for stack): which type of command for stack
+extype: for now, if to add data onto program counter (0 no, 1 yes)
+addrs/R/G/Btype: 0 built in, 1 register(for each). For each color and address the type changes it, R, G, B, and ADDRESS will be register name (or built in if 0)
+
+
+This uses two ROMS. First rom contains DATA 1 + OPCODE and second contains DATA 3 + DATA 2. So it's like 00000000 00000000 00000000 00000000 (OPCODE is farthest right and DATA 3 is farthest left)
+
+
+DATA 3			 DATA 2					     DATA 1   OPCODE
+null     		 null     				     null     00000000    -- no op (no operation)
+reg1nibble/op      	 reg2Type(2B)/reg1Type(2B)/outReg(4B)        reg2/1   00000001    -- preforms operation on reg 1 (first nibble) and reg 2 (second nibble) into out reg
+null     		 reg      				     addrs    00000010    -- stores register into RAM address
+null     		 outReg      		     		     addrs    00000011    -- stores ram address value into register
+null     		 reg      		     		     data     00000100    -- sets register to value/data
+usereg(1B)/key       	 reg(4B)/jmptype(4B)  	 		     addrs    00000101    -- does jump for jumptype into address. There's jump on key, jump on zero, jump on carry, and jump
+addrs/R/G/Btype(1B)/B    R/G      		     		     addrs    00000110    -- draw pixel on screen. Red is first nibble, green is last nibble, and first nibble is blue (second byte)
+null     		 null     		     		     null     00000111    -- clear screen
+null     		 null     		    		     null     00001000    -- refreshes screen
+null     		 reg     		    		     null     00001001    -- makes random 8 bit number and puts into register
+type(2B)/stack(2B)     	 extype/reg	  		             data     00001010    -- pops or pushs value onto stack
+
+null     		 null     		     		     null     11111111    -- halt, stops cpu
+
+REG STORE
+RNG OUT
+RAM STORE
+RAM OUT
+ALU OUT
+INC/DEC ON
+S WRITE
+S RESET
+S REFRESH
+JUMP
+
+[name]: (function)
+NOP
+[register name] + (or /, *, nand, and, not, or, nor, xor, and xnor) [register name] = [register name]
+STORE [register name] into [ram address, could be 0x, 0b, or decimal (same for every number and address)]
+STORE [ram address] into [register name]
+SET [register name] to [number]
+jump [function name or address, also function names can't be only number but must have at least one letter (to tell difference)] if [jump type, zero, carry, key, and nothing here if just jump]
+DRAW X Y R G B (numbers or can be register)
+CLEARSCREEN
+REFRESHSCREEN
+RANDOM [register name]
+PUSH [stack name] [value]
+POP [stack name] [register name]
+HALT
