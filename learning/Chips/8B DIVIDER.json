@@ -1,4 +1,5 @@
 {
+  "DLSVersion": "2.1.5",
   "Name": "8B DIVIDER",
   "NameLocation": 0,
   "ChipType": 0,
@@ -34,17 +35,6 @@
       "BitCount":8,
       "Colour":0,
       "ValueDisplayMode":1
-    },
-    {
-      "Name":"PWR",
-      "ID":-1,
-      "Position":{
-        "x":0.0,
-        "y":0.0
-      },
-      "BitCount":1,
-      "Colour":0,
-      "ValueDisplayMode":0
     }
   ],
   "OutputPins":[
@@ -375,7 +365,7 @@
       "ConnectionType":1,
       "ConnectedWireIndex":11,
       "ConnectedWireSegmentIndex":1,
-      "Points":[{"x":5.66887,"y":1.40666},{"x":0.0,"y":0.0}]
+      "Points":[{"x":5.66887,"y":1.40665},{"x":0.0,"y":0.0}]
     },
     {
       "SourcePinAddress":{
@@ -417,7 +407,7 @@
       "ConnectionType":1,
       "ConnectedWireIndex":11,
       "ConnectedWireSegmentIndex":1,
-      "Points":[{"x":-1.42862,"y":2.19417},{"x":0.0,"y":0.0}]
+      "Points":[{"x":-1.42862,"y":2.19416},{"x":0.0,"y":0.0}]
     },
     {
       "SourcePinAddress":{
@@ -459,7 +449,7 @@
       "ConnectionType":1,
       "ConnectedWireIndex":11,
       "ConnectedWireSegmentIndex":1,
-      "Points":[{"x":-7.14818,"y":2.82879},{"x":0.0,"y":0.0}]
+      "Points":[{"x":-7.14818,"y":2.82878},{"x":0.0,"y":0.0}]
     },
     {
       "SourcePinAddress":{
@@ -1078,5 +1068,6 @@
       "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}]
     }
   ],
-  "Displays":[]
+  "Displays":[],
+  "FreezePinEnabled": false
 }

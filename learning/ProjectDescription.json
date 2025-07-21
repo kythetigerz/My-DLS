@@ -3,7 +3,7 @@
   "DLSVersion_LastSaved": "2.1.5",
   "DLSVersion_EarliestCompatible": "2.0.0",
   "CreationTime": "2025-04-19T12:22:53.037-07:00",
-  "LastSaveTime": "2025-07-16T02:32:33.638-07:00",
+  "LastSaveTime": "2025-07-20T10:51:12.726-07:00",
   "Prefs_MainPinNamesDisplayMode": 0,
   "Prefs_ChipPinNamesDisplayMode": 2,
   "Prefs_GridDisplayMode": 0,
@@ -13,7 +13,7 @@
   "Prefs_SimTargetStepsPerSecond": 999999999,
   "Prefs_SimStepsPerClockTick": 10,
   "Prefs_FreezeAuto": false,
-  "Prefs_FreezeAutoTickRate": 1,
+  "Prefs_FreezeAutoTickRate": 2,
   "AllCustomChipNames":[
     "NOT",
     "AND",
@@ -134,7 +134,11 @@
     "ALU REG PICKER",
     "REGISTER PICK",
     "STACK 16B",
-    "4to1 OR"
+    "5to1 OR",
+    "NAND 8B",
+    "Compare 8B",
+    "Compare 8B N",
+    "SCREEN REG PICKER"
   ],
   "StarredList":[
     {
@@ -346,7 +350,23 @@
       "IsCollection":false
     },
     {
-      "Name":"4to1 OR",
+      "Name":"5to1 OR",
+      "IsCollection":false
+    },
+    {
+      "Name":"NAND 8B",
+      "IsCollection":false
+    },
+    {
+      "Name":"Compare 8B",
+      "IsCollection":false
+    },
+    {
+      "Name":"Compare 8B N",
+      "IsCollection":false
+    },
+    {
+      "Name":"SCREEN REG PICKER",
       "IsCollection":false
     }
   ],
@@ -382,7 +402,7 @@
       "Name":"BUS"
     },
     {
-      "Chips":["PULSE","4 bit buffer","screen test","32 bit mem","16-bit wide 2-to-1 MUX","1080 RGB DISPLAY","GPU test","4 bit counter","EQUALS 4","Compare 1B","Edge Function","4 BIT NEGATOR","16 bit buffer","Compare 4B N","GPU show","dev.RAM-8","EDGE FUNCTION ","Color Interpolation Math","Solid State Drive","GPU test 2","Compare 4B","Compare 32B","TRI SORT","32 x 1 multiplexer","32-bit wide 2-to-1 MUX","TRI SORT ALL","Bitonic Sort Core","32 bit buffer","test sort","1 BIT REGISTER S R","mult tri test","8 bit counter","B-AND-4","B-AND-8","B-AND-16","B-AND-32","B-NOT-4","B-NOT-8","B-NOT-16","B-NOT-32","B-OR-4","B-OR-8","B-OR-16","B-OR-32","B-XOR-4","B-XOR-8","B-XOR-16","B-XOR-32","B-XNOR-4","B-XNOR-8","B-XNOR-16","B-XNOR-32","B-NOR-4","B-NOR-8","B-NOR-16","B-NOR-32","B-3STATE-1","B-3STATE-4","B-3STATE-8","B-3STATE-16","B-3STATE-32","B-COUNTER-4","B-COUNTER-8","B-EQUALS-4","B-EQUALS-8","B-FIRST-TICK","test","GPU test 3","B-COUNTER-16","B-COUNTER-32","B-COUNTER-64","B-EQUALS-16","B-EQUALS-32","B-EQUALS-64","EDGE FUNCTION 3-MERGE 32-BIT","EDGE FUNCTION 3-MERGE 32-BIT CHUNK","1B reg MRW","BLANK","Addition32","Multiplication32","Division32","keyboard","cool keyboard","mouse","64 x 1 multiplexer","256 x 1 multiplexer","8 BIT REGISTER S R","CPU","PC","CU","ALU","Random NC","8 bit random NC","8B Gated D Latch (SR)","Register Chunk","KEYCHECK MODULE","CPU 2","Register Chunk 2","B-DECODER-8","CU 2","ALU REG PICKER","REGISTER PICK","STACK 16B","STACK-8","4to1 OR"],
+      "Chips":["PULSE","4 bit buffer","screen test","32 bit mem","16-bit wide 2-to-1 MUX","1080 RGB DISPLAY","GPU test","4 bit counter","EQUALS 4","Compare 1B","Edge Function","4 BIT NEGATOR","16 bit buffer","Compare 4B N","GPU show","dev.RAM-8","EDGE FUNCTION ","Color Interpolation Math","Solid State Drive","GPU test 2","Compare 4B","Compare 32B","TRI SORT","32 x 1 multiplexer","32-bit wide 2-to-1 MUX","TRI SORT ALL","Bitonic Sort Core","32 bit buffer","test sort","1 BIT REGISTER S R","mult tri test","8 bit counter","B-AND-4","B-AND-8","B-AND-16","B-AND-32","B-NOT-4","B-NOT-8","B-NOT-16","B-NOT-32","B-OR-4","B-OR-8","B-OR-16","B-OR-32","B-XOR-4","B-XOR-8","B-XOR-16","B-XOR-32","B-XNOR-4","B-XNOR-8","B-XNOR-16","B-XNOR-32","B-NOR-4","B-NOR-8","B-NOR-16","B-NOR-32","B-3STATE-1","B-3STATE-4","B-3STATE-8","B-3STATE-16","B-3STATE-32","B-COUNTER-4","B-COUNTER-8","B-EQUALS-4","B-EQUALS-8","B-FIRST-TICK","test","GPU test 3","B-COUNTER-16","B-COUNTER-32","B-COUNTER-64","B-EQUALS-16","B-EQUALS-32","B-EQUALS-64","EDGE FUNCTION 3-MERGE 32-BIT","EDGE FUNCTION 3-MERGE 32-BIT CHUNK","1B reg MRW","BLANK","Addition32","Multiplication32","Division32","keyboard","cool keyboard","mouse","64 x 1 multiplexer","256 x 1 multiplexer","8 BIT REGISTER S R","CPU","PC","CU","ALU","Random NC","8 bit random NC","8B Gated D Latch (SR)","Register Chunk","KEYCHECK MODULE","CPU 2","Register Chunk 2","B-DECODER-8","CU 2","ALU REG PICKER","REGISTER PICK","STACK 16B","STACK-8","5to1 OR","NAND 8B","Compare 8B","Compare 8B N","SCREEN REG PICKER"],
       "IsToggledOpen":false,
       "Name":"OTHER"
     },
