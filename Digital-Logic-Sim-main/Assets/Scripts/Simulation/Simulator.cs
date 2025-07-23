@@ -198,6 +198,7 @@ namespace DLS.Simulation
                                         chip.ChipType == ChipType.Key ||
                                                 chip.ChipType == ChipType.Keyboard ||
                                                 chip.ChipType == ChipType.Mouse ||
+                                                chip.ChipType == ChipType.B_CPU ||
                                         ContainsChipThatRequiresConstantUpdates(chip);
                                 
                                 if (!chipRequiresConstantUpdates)
@@ -1654,6 +1655,13 @@ namespace DLS.Simulation
                                         }
                                         break;
                                 }
+                                
+                                case ChipType.B_CPU:
+                                {
+                                        ProcessBCPU(chip);
+                                        break;
+                                }
+                                
                                 // ---- Bus types ----
                                 default:
                                 {
@@ -1665,6 +1673,331 @@ namespace DLS.Simulation
 
                                         break;
                                 }
+                        }
+                }
+
+                static void ProcessBCPU(SimChip chip)
+                {
+                        // Input pins: DATA3, DATA2, DATA1, OPCODE, CLOCK, RUN, STEP
+                        ulong data3 = PinState.GetBitStates(chip.InputPins[0].State);
+                        ulong data2 = PinState.GetBitStates(chip.InputPins[1].State);
+                        ulong data1 = PinState.GetBitStates(chip.InputPins[2].State);
+                        ulong opcode = PinState.GetBitStates(chip.InputPins[3].State);
+                        bool clock = PinState.FirstBitHigh(chip.InputPins[4].State);
+                        bool run = PinState.FirstBitHigh(chip.InputPins[5].State);
+                        bool step = PinState.FirstBitHigh(chip.InputPins[6].State);
+
+                        // Get previous states
+                        bool prevClock = chip.InternalState[1053] != 0;
+                        bool prevRun = chip.InternalState[1054] != 0;
+                        bool prevStep = chip.InternalState[1055] != 0;
+
+                        // Update previous states
+                        chip.InternalState[1053] = clock ? 1UL : 0UL;
+                        chip.InternalState[1054] = run ? 1UL : 0UL;
+                        chip.InternalState[1055] = step ? 1UL : 0UL;
+
+                        // Check for halt flag
+                        bool isHalted = (chip.InternalState[1056] & 0x4) != 0;
+
+                        // Execute instruction on rising edge of clock and if not halted
+                        bool shouldExecute = false;
+                        if (!isHalted)
+                        {
+                                if (run && clock && !prevClock) // Rising edge while running
+                                {
+                                        shouldExecute = true;
+                                }
+                                else if (step && !prevStep) // Rising edge of step
+                                {
+                                        shouldExecute = true;
+                                }
+                        }
+
+                        if (shouldExecute)
+                        {
+                                ExecuteCPUInstruction(chip, data3, data2, data1, opcode);
+                        }
+
+                        // Update output pins with current register values and state
+                        UpdateCPUOutputs(chip);
+                }
+
+                static void ExecuteCPUInstruction(SimChip chip, ulong data3, ulong data2, ulong data1, ulong opcode)
+                {
+                        // Clear flags
+                        chip.InternalState[1056] &= ~0x3UL; // Clear carry and zero flags
+
+                        switch (opcode)
+                        {
+                                case 0x00: // NOP
+                                        break;
+
+                                case 0x01: // Math operation
+                                        {
+                                                byte op = (byte)(data3 >> 4);
+                                                byte reg1 = (byte)(data3 & 0xF);
+                                                byte reg2Type = (byte)((data2 >> 6) & 0x3);
+                                                byte reg1Type = (byte)((data2 >> 4) & 0x3);
+                                                byte outReg = (byte)(data2 & 0xF);
+                                                byte reg2 = (byte)(data1 & 0xF);
+
+                                                ulong val1 = GetCPUValue(chip, reg1, reg1Type);
+                                                ulong val2 = GetCPUValue(chip, reg2, reg2Type);
+                                                ulong result = PerformMathOperation(chip, op, val1, val2);
+
+                                                if (outReg < 25) chip.InternalState[outReg] = result & 0xFF;
+                                                break;
+                                        }
+
+                                case 0x02: // Store register to RAM
+                                        {
+                                                byte reg = (byte)data2;
+                                                byte addr = (byte)data1;
+                                                if (reg < 25)
+                                                {
+                                                        chip.InternalState[29 + addr] = chip.InternalState[reg];
+                                                }
+                                                break;
+                                        }
+
+                                case 0x03: // Load RAM to register
+                                        {
+                                                byte outReg = (byte)data2;
+                                                byte addr = (byte)data1;
+                                                if (outReg < 25)
+                                                {
+                                                        chip.InternalState[outReg] = chip.InternalState[29 + addr];
+                                                }
+                                                break;
+                                        }
+
+                                case 0x04: // Set register to value
+                                        {
+                                                byte reg = (byte)data2;
+                                                byte value = (byte)data1;
+                                                if (reg < 25)
+                                                {
+                                                        chip.InternalState[reg] = value;
+                                                }
+                                                break;
+                                        }
+
+                                case 0x05: // Jump
+                                        {
+                                                byte useReg = (byte)(data3 >> 7);
+                                                byte key = (byte)(data3 & 0x7F);
+                                                byte reg = (byte)((data2 >> 4) & 0xF);
+                                                byte jmpType = (byte)(data2 & 0xF);
+                                                byte addr = (byte)data1;
+
+                                                bool shouldJump = ShouldJump(chip, jmpType, key, useReg != 0 ? reg : (byte)255);
+                                                if (shouldJump)
+                                                {
+                                                        chip.InternalState[25] = addr; // Set PC
+                                                        return; // Don't increment PC
+                                                }
+                                                break;
+                                        }
+
+                                case 0x06: // Draw pixel
+                                        {
+                                                byte addrType = (byte)(data3 >> 7);
+                                                byte rType = (byte)((data3 >> 6) & 1);
+                                                byte gType = (byte)((data3 >> 5) & 1);
+                                                byte bType = (byte)((data3 >> 4) & 1);
+                                                byte blue = (byte)(data3 & 0xF);
+                                                byte red = (byte)((data2 >> 4) & 0xF);
+                                                byte green = (byte)(data2 & 0xF);
+                                                byte addr = (byte)data1;
+
+                                                // Get actual values based on types
+                                                ulong screenAddr = addrType == 0 ? addr : (addr < 25 ? chip.InternalState[addr] : 0);
+                                                ulong redVal = rType == 0 ? red : (red < 25 ? chip.InternalState[red] : 0);
+                                                ulong greenVal = gType == 0 ? green : (green < 25 ? chip.InternalState[green] : 0);
+                                                ulong blueVal = bType == 0 ? blue : (blue < 25 ? chip.InternalState[blue] : 0);
+
+                                                // Store screen coordinates and colors for output
+                                                chip.InternalState[1057] = screenAddr & 0xF; // X (lower nibble)
+                                                chip.InternalState[1058] = (screenAddr >> 4) & 0xF; // Y (upper nibble)
+                                                
+                                                // Set screen output values (will be output in UpdateCPUOutputs)
+                                                break;
+                                        }
+
+                                case 0x07: // Clear screen
+                                        // Implementation would depend on how screen clearing is handled
+                                        break;
+
+                                case 0x08: // Refresh screen
+                                        // Set refresh flag
+                                        break;
+
+                                case 0x09: // Random number
+                                        {
+                                                byte reg = (byte)data2;
+                                                if (reg < 25)
+                                                {
+                                                        chip.InternalState[reg] = (ulong)(rng.Next(256));
+                                                }
+                                                break;
+                                        }
+
+                                case 0x0A: // Stack operation
+                                        {
+                                                byte type = (byte)((data3 >> 6) & 0x3);
+                                                byte stack = (byte)((data3 >> 4) & 0x3);
+                                                byte exType = (byte)((data2 >> 4) & 0xF);
+                                                byte reg = (byte)(data2 & 0xF);
+                                                byte value = (byte)data1;
+
+                                                PerformStackOperation(chip, type, stack, reg, value, exType);
+                                                break;
+                                        }
+
+                                case 0xFF: // Halt
+                                        chip.InternalState[1056] |= 0x4; // Set halt flag
+                                        break;
+                        }
+
+                        // Increment program counter (unless it was a jump that executed)
+                        if (opcode != 0x05 || !ShouldJump(chip, (byte)(data2 & 0xF), (byte)(data3 & 0x7F), (byte)(data3 >> 7) != 0 ? (byte)((data2 >> 4) & 0xF) : (byte)255))
+                        {
+                                chip.InternalState[25] = (chip.InternalState[25] + 1) & 0xFF;
+                        }
+                }
+
+                static ulong GetCPUValue(SimChip chip, byte reg, byte type)
+                {
+                        return type switch
+                        {
+                                0 => reg < 25 ? chip.InternalState[reg] : 0, // Register
+                                1 => reg, // Built-in value
+                                2 => chip.InternalState[29 + reg], // RAM address (reg is byte, so always < 256)
+                                _ => 0
+                        };
+                }
+
+                static ulong PerformMathOperation(SimChip chip, byte op, ulong val1, ulong val2)
+                {
+                        ulong result = op switch
+                        {
+                                0 => val1 + val2, // Addition
+                                1 => val1 - val2, // Subtraction
+                                2 => val1 * val2, // Multiplication
+                                3 => val2 != 0 ? val1 / val2 : 0, // Division
+                                4 => ~(val1 & val2), // NAND
+                                5 => val1 & val2, // AND
+                                6 => ~val1, // NOT
+                                7 => val1 | val2, // OR
+                                8 => ~(val1 | val2), // NOR
+                                9 => val1 ^ val2, // XOR
+                                10 => ~(val1 ^ val2), // XNOR
+                                11 => val1 == val2 ? 1UL : 0UL, // Compare
+                                12 => (long)val1 == (long)val2 ? 1UL : 0UL, // Compare Signed
+                                _ => 0
+                        };
+
+                        // Set flags
+                        if (result == 0) chip.InternalState[1056] |= 0x2; // Zero flag
+                        if (result > 0xFF) chip.InternalState[1056] |= 0x1; // Carry flag
+
+                        return result & 0xFF;
+                }
+
+                static bool ShouldJump(SimChip chip, byte jmpType, byte key, byte reg)
+                {
+                        return jmpType switch
+                        {
+                                0 => true, // JUMP
+                                1 => (chip.InternalState[1056] & 0x2) != 0, // ZERO
+                                2 => (chip.InternalState[1056] & 0x1) != 0, // CARRY
+                                3 => IsKeyPressed(key), // KEY
+                                0xF => IsAnyKeyPressed(), // ANY KEY
+                                _ => false
+                        };
+                }
+
+                static bool IsKeyPressed(byte key)
+                {
+                        // This would need to interface with the keyboard system
+                        // For now, return false
+                        return false;
+                }
+
+                static bool IsAnyKeyPressed()
+                {
+                        // This would need to interface with the keyboard system
+                        // For now, return false
+                        return false;
+                }
+
+                static void PerformStackOperation(SimChip chip, byte type, byte stack, byte reg, byte value, byte exType)
+                {
+                        int stackBase = stack switch
+                        {
+                                0 => 285, // Return stack
+                                1 => 541, // Function parameters stack
+                                2 => 797, // General purpose stack
+                                _ => 285
+                        };
+
+                        int stackPtrIndex = 26 + stack; // Stack pointer indices: 26, 27, 28
+
+                        if (type == 0) // Push
+                        {
+                                ulong stackPtr = chip.InternalState[stackPtrIndex];
+                                if (stackPtr < 256)
+                                {
+                                        ulong pushValue = reg == 0xF ? value : (reg < 25 ? chip.InternalState[reg] : 0);
+                                        chip.InternalState[(ulong)stackBase + stackPtr] = pushValue;
+                                        chip.InternalState[stackPtrIndex] = stackPtr + 1;
+
+                                        if (exType == 1) // Add to program counter
+                                        {
+                                                chip.InternalState[25] = (chip.InternalState[25] + value) & 0xFF;
+                                        }
+                                }
+                        }
+                        else if (type == 1) // Pop
+                        {
+                                ulong stackPtr = chip.InternalState[stackPtrIndex];
+                                if (stackPtr > 0)
+                                {
+                                        stackPtr--;
+                                        ulong popValue = chip.InternalState[(ulong)stackBase + stackPtr];
+                                        if (reg < 25)
+                                        {
+                                                chip.InternalState[reg] = popValue;
+                                        }
+                                        chip.InternalState[stackPtrIndex] = stackPtr;
+
+                                        if (exType == 1) // Add to program counter
+                                        {
+                                                chip.InternalState[25] = (chip.InternalState[25] + popValue) & 0xFF;
+                                        }
+                                }
+                        }
+                }
+
+                static void UpdateCPUOutputs(SimChip chip)
+                {
+                        // Screen outputs
+                        chip.OutputPins[0].State = chip.InternalState[1057] | (chip.InternalState[1058] << 4); // S ADDRESS (X + Y*16)
+                        chip.OutputPins[1].State = 0; // S RED (would be set during draw operations)
+                        chip.OutputPins[2].State = 0; // S GREEN
+                        chip.OutputPins[3].State = 0; // S BLUE
+                        chip.OutputPins[4].State = 0; // S WRITE
+                        chip.OutputPins[5].State = 0; // S REFRESH
+                        chip.OutputPins[6].State = 0; // S CLOCK
+
+                        // Program counter
+                        chip.OutputPins[7].State = chip.InternalState[25]; // PC ADDRESS
+
+                        // Registers A-Y (pins 8-32, internal state 0-24)
+                        for (int i = 0; i < 25; i++)
+                        {
+                                chip.OutputPins[8 + i].State = chip.InternalState[i];
                         }
                 }
 
@@ -1859,6 +2192,7 @@ namespace DLS.Simulation
                                                 subChip.ChipType == ChipType.Key ||
                                                         subChip.ChipType == ChipType.Keyboard ||
                                                         subChip.ChipType == ChipType.Mouse ||
+                                                        subChip.ChipType == ChipType.B_CPU ||
                                                 ContainsChipThatRequiresConstantUpdates(subChip))
                                         {
                                                 return true;

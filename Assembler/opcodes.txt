@@ -107,4 +107,11 @@ REFRESHSCREEN
 RANDOM [register name]
 PUSH [stack name] [value]
 POP [stack name] [register name]
+
+IF [value or register name] [compare type] [value or register name] then
+
+[else or elseif also can be many of these]
+
+end
+
 HALT

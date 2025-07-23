@@ -7,20 +7,13 @@ RANDOM C
 JUMP RenderLoop
 
 DrawLoop:
-    DRAW 5 5 255 0 0
-    REFRESHSCREEN
+    DRAW X X A B C
     RANDOM A
     RANDOM B
     RANDOM C
     X = X + 1
-    JUMP IncY if zero
-    Y = Y + 0
-    JUMP RenderLoop if zero
+    JUMP RenderLoop if carry
     JUMP DrawLoop
-
-IncY:
-    Y = Y + 1
-    JUMP L16
 
 RenderLoop:
     REFRESHSCREEN

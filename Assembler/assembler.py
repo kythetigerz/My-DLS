@@ -101,6 +101,7 @@ def first_pass(lines):
     """First pass to identify functions and fake functions only"""
     functions = {}
     fake_functions = {}
+    functions_with_return = set()  # Track which functions have RETURN statements
     
     # First, identify functions and fake functions
     for i, line in enumerate(lines):
@@ -134,31 +135,44 @@ def first_pass(lines):
                     
                     # Look ahead to see if this should be treated as a function
                     is_function = False
+                    has_return = False
                     
-                    # Look ahead to see if it has a return statement - this is the primary indicator
+                    # Look ahead to see if it has a return statement or ends with an unconditional jump
                     for j in range(i + 1, min(i + 20, len(lines))):  # Look ahead up to 20 lines
                         next_line = re.sub(r'//.*', '', lines[j]).strip()
                         if not next_line:
                             continue
                         if next_line.upper() == 'RETURN':
                             is_function = True
+                            has_return = True
                             break
+                        # Check if it ends with an unconditional jump (JUMP without IF condition)
+                        if next_line.upper().startswith('JUMP ') and ' IF ' not in next_line.upper():
+                            parts = next_line.upper().split()
+                            # Make sure it's not a conditional jump (ZERO, CARRY, KEY)
+                            if len(parts) == 2 or (len(parts) > 2 and parts[2] not in ['ZERO', 'CARRY', 'KEY']):
+                                is_function = True
+                                break
                         if ':' in next_line:  # Hit another label
                             break
                     
-                    # If no return statement found, only check for explicit function naming patterns
+                    # Only treat as function if it has explicit function patterns AND has return/jump behavior
                     if not is_function:
-                        if any(pattern in func_name for pattern in ['FUNC', 'SUB', 'PROC']):
+                        # Be more restrictive - only treat as function if it has explicit naming patterns
+                        if any(pattern in func_name for pattern in ['FUNC', 'SUB', 'PROC', 'ROUTINE']):
                             is_function = True
                     
                     if is_function:
                         # Treat as function
                         functions[func_name] = None  # Placeholder
+                        if has_return:
+                            functions_with_return.add(func_name)
     
-    # Collect fake function instructions
+    # Collect fake function instructions and check for RETURN statements in fake functions
     for func_name, func_info in fake_functions.items():
         start_line = func_info['start_line']
         instructions = []
+        has_return = False
         
         # Find instructions until next function/label or end of file
         for i in range(start_line + 1, len(lines)):
@@ -171,13 +185,20 @@ def first_pass(lines):
                 break
                 
             instructions.append(line)
+            if line.upper() == 'RETURN':
+                has_return = True
         
         func_info['instructions'] = instructions
+        if has_return:
+            functions_with_return.add(func_name)
     
-    return functions, fake_functions
+    return functions, fake_functions, functions_with_return
 
-def count_instruction_increment(line, fake_functions):
+def count_instruction_increment(line, fake_functions, functions_with_return=None):
     """Count how many machine instructions a single source line will generate"""
+    if functions_with_return is None:
+        functions_with_return = set()
+    
     line = line.strip().upper()
     
     # RETURN generates 2 instructions (LOAD + JUMP)
@@ -188,17 +209,23 @@ def count_instruction_increment(line, fake_functions):
     if line.startswith('IF ') or line == 'ELSE' or line == 'END':
         return 0
     
-    # Function calls generate 2 instructions (PUSH return address + JUMP)
+    # Function calls - check if they need return address handling
     if line.startswith('JUMP') and '[' in line and ']' in line:
         func_name_match = re.search(r'\[([^\]]+)\]', line)
         if func_name_match:
             func_name = func_name_match.group(1).upper()
             if func_name in fake_functions:
-                # Fake function - count its instructions
-                return len(fake_functions[func_name]['instructions'])
+                # Fake function - count its instructions recursively
+                total_count = 0
+                for instr in fake_functions[func_name]['instructions']:
+                    total_count += count_instruction_increment(instr, fake_functions, functions_with_return)
+                return total_count
             else:
-                # Real function call - generates 2 instructions (push return + jump)
-                return 2
+                # Real function call - only generates 2 instructions if function has RETURN
+                if func_name in functions_with_return:
+                    return 2  # push return + jump
+                else:
+                    return 1  # just jump
     
     # Function calls without brackets to fake functions
     if line.startswith('JUMP'):
@@ -206,7 +233,17 @@ def count_instruction_increment(line, fake_functions):
         if len(parts) >= 2:
             target = parts[1].upper()
             if target in fake_functions:
-                return len(fake_functions[target]['instructions'])
+                # Fake function - count its instructions recursively
+                total_count = 0
+                for instr in fake_functions[target]['instructions']:
+                    total_count += count_instruction_increment(instr, fake_functions, functions_with_return)
+                return total_count
+            else:
+                # Real function call - only generates 2 instructions if function has RETURN
+                if target in functions_with_return:
+                    return 2  # push return + jump
+                else:
+                    return 1  # just jump
     
     # Most other instructions generate 1 machine instruction
     return 1
@@ -259,8 +296,13 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
 
     # RANDOM R
     if line.startswith('RANDOM'):
-        _, reg = line.split()
-        reg_code = REGISTERS[reg]
+        parts = line.split()
+        if len(parts) != 2:
+            raise ValueError(f"RANDOM instruction requires exactly one register parameter, got {len(parts)-1}: {line}")
+        reg = parts[1]
+        if reg.upper() not in REGISTERS:
+            raise ValueError(f"Invalid register in RANDOM instruction: {reg}")
+        reg_code = REGISTERS[reg.upper()]
         # DATA3: null, DATA2: register, DATA1: null
         return (0, reg_code, 0, OPCODES['RANDOM'])
 
@@ -277,8 +319,11 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
             stack_name = parts[1].upper()
             if stack_name in STACK_TYPES:
                 stack_type = STACK_TYPES[stack_name]
+                value_str = parts[2].upper()
+            else:
+                # First argument is not a stack name, treat as PUSH [value/register] with default stack
+                value_str = parts[1].upper()
             
-            value_str = parts[2].upper()
             if value_str in REGISTERS:
                 # Push from register
                 reg = REGISTERS[value_str]
@@ -320,7 +365,10 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
             stack_name = parts[1].upper()
             if stack_name in STACK_TYPES:
                 stack_type = STACK_TYPES[stack_name]
-            reg = REGISTERS[parts[2]]
+                reg = REGISTERS[parts[2]]
+            else:
+                # First argument is not a stack name, treat as POP [register] with default stack
+                reg = REGISTERS[parts[1]]
         elif len(parts) >= 2:
             # POP [register] (default stack)
             reg = REGISTERS[parts[1]]
@@ -340,7 +388,11 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
     # SET R TO N
     if line.startswith('SET'):
         parts = line.split()
-        reg = REGISTERS[parts[1]]
+        if len(parts) < 4 or parts[2].upper() != 'TO':
+            raise ValueError(f"SET instruction must be in format 'SET R TO N', got: {line}")
+        if parts[1].upper() not in REGISTERS:
+            raise ValueError(f"Invalid register in SET instruction: {parts[1]}")
+        reg = REGISTERS[parts[1].upper()]
         value = parse_number(parts[-1])
         
         # DATA3: null, DATA2: register, DATA1: data/value
@@ -371,6 +423,10 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
     # DRAW X Y R G B - can use registers or literal values
     if line.startswith('DRAW'):
         parts = line.split()
+        
+        # Validate parameter count
+        if len(parts) != 6:
+            raise ValueError(f"DRAW instruction requires exactly 5 parameters (X Y R G B), got {len(parts)-1}: {line}")
         
         # For DRAW instruction, if parameters are registers, we encode them differently
         # The hardware expects literal values, but if registers are used, we need to
@@ -431,15 +487,17 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
                     jump_type = None  # Will be set to 0xFF below
                     key = 0
         
-        # Determine target address
+        # Determine target address - this is the instruction address where we want to jump
         addr = None
         is_function_call = False
         
         # Check if it's a line number (L1, L2, etc.)
-        if line_labels and label.upper() in line_labels:
-            addr = line_labels[label.upper()]
-            if addr is None:
-                addr = 0  # Default to 0 if line doesn't produce instruction
+        if line_labels and label.upper().startswith('L') and label.upper()[1:].isdigit():
+            line_num = int(label.upper()[1:])
+            if f'L{line_num}' in line_labels:
+                addr = line_labels[f'L{line_num}']
+            else:
+                raise ValueError(f"Unknown line label: '{label}'. Available line labels: {', '.join(sorted(line_labels.keys()))}")
         # Check if it's a function call (with or without brackets)
         elif functions and label.upper() in functions:
             addr = functions[label.upper()]
@@ -461,7 +519,7 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         elif label.upper() in labels:
             addr = labels[label.upper()]
         else:
-            # Try to parse it as a number
+            # Try to parse it as a number (direct instruction address)
             try:
                 addr = parse_number(label)
             except ValueError:
@@ -490,12 +548,15 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         # According to opcodes.txt:
         # DATA3: usereg(1B)/key - usereg in upper nibble, key in lower nibble
         # DATA2: reg(4B)/jmptype(4B) - reg in upper nibble, jump type in lower nibble
-        # DATA1: addrs - the address to jump to
+        # DATA1: addrs - the instruction address to jump to (resolved from label)
         if addr is None:
-            raise ValueError(f"Could not resolve address for jump target: '{label}'")
+            raise ValueError(f"Could not resolve instruction address for jump target: '{label}'")
         
         usereg = 0  # 0 = use address directly, 1 = use register
         reg = 0     # register to use if usereg=1
+        
+        # Add 1 to the jump address to fix hardware issue
+        addr = (addr + 1) & 0xFF
         
         data3 = (usereg << 4) | (key & 0xF)
         data2 = (reg << 4) | (jt & 0xF)
@@ -531,7 +592,7 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         
         data3 = (reg1_nibble << 4) | (opnum & 0xF)
         data2 = (val2_type << 6) | (val1_type << 4) | out
-        data1 = (val2 << 4) | val1
+        data1 = ((val2 & 0xF) << 4) | (val1 & 0xF)
         
         return (data3, data2, data1, OPCODES['ALU'])
 
@@ -557,7 +618,7 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         
         data3 = (reg1_nibble << 4) | (opnum & 0xF)
         data2 = (val2_type << 6) | (val1_type << 4) | out
-        data1 = (val2 << 4) | val1
+        data1 = ((val2 & 0xF) << 4) | (val1 & 0xF)
         
         return (data3, data2, data1, OPCODES['ALU'])
 
@@ -581,7 +642,7 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         
         data3 = (reg1_nibble << 4) | (opnum & 0xF)
         data2 = (val2_type << 6) | (val1_type << 4) | out
-        data1 = (val2 << 4) | val1
+        data1 = ((val2 & 0xF) << 4) | (val1 & 0xF)
         
         return (data3, data2, data1, OPCODES['ALU'])
 
@@ -604,7 +665,7 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
         
         data3 = (reg1_nibble << 4) | (opnum & 0xF)
         data2 = (val2_type << 6) | (val1_type << 4) | out
-        data1 = (val2 << 4) | val1
+        data1 = ((val2 & 0xF) << 4) | (val1 & 0xF)
         
         return (data3, data2, data1, OPCODES['ALU'])
 
@@ -621,8 +682,11 @@ def parse_instruction(line, labels, functions=None, line_labels=None, call_stack
     
     raise ValueError(f"Unknown instruction: {line}")
 
-def expand_fake_function(fake_func_instructions, labels, functions, line_labels, call_stack_ptr, fake_functions):
+def expand_fake_function(fake_func_instructions, labels, functions, line_labels, call_stack_ptr, fake_functions, functions_with_return=None):
     """Expand fake function instructions inline"""
+    if functions_with_return is None:
+        functions_with_return = set()
+    
     expanded = []
     for instruction in fake_func_instructions:
         result = parse_instruction(instruction, labels, functions, line_labels, call_stack_ptr, fake_functions)
@@ -635,13 +699,13 @@ def expand_fake_function(fake_func_instructions, labels, functions, line_labels,
                     # The label should already be set up to point to the expanded location
                     jt = JUMP_TYPES.get(jump_type, 0) if jump_type else 0
                     if func_name in labels:
-                        expanded.append((key or 0, jt, labels[func_name] & 0xFF, OPCODES['JUMP']))
+                        expanded.append((key or 0, jt, (labels[func_name] + 1) & 0xFF, OPCODES['JUMP']))
                     else:
                         # If not found in labels, this might be a forward reference or error
-                        expanded.append((key or 0, jt, 0, OPCODES['JUMP']))
+                        expanded.append((key or 0, jt, 1, OPCODES['JUMP']))
                 else:
-                    # Real function call
-                    expanded.extend(generate_function_call_instructions(func_name, jump_type, key))
+                    # Real function call - only use D register if function has RETURN
+                    expanded.extend(generate_function_call_instructions(func_name, jump_type, key, functions_with_return))
             elif result[0] == 'RETURN':
                 # Generate return instructions
                 expanded.extend(generate_return_instructions())
@@ -649,18 +713,23 @@ def expand_fake_function(fake_func_instructions, labels, functions, line_labels,
                 expanded.append(result)
     return expanded
 
-def generate_function_call_instructions(target_addr, jump_type=None, key=0):
+def generate_function_call_instructions(target_addr, jump_type=None, key=0, functions_with_return=None):
     """Generate instructions for function call with return address storage"""
+    if functions_with_return is None:
+        functions_with_return = set()
+    
     instructions = []
     
-    # Store return address to return stack
-    # We'll need to calculate the actual return address during final assembly
-    # For now, we'll use a placeholder that gets resolved later
-    instructions.append(('STORE_RETURN_ADDR', 0, 0, 'SPECIAL'))
+    # Only store return address if the target function has a RETURN statement
+    if target_addr in functions_with_return:
+        # Store return address to return stack
+        # We'll need to calculate the actual return address during final assembly
+        # For now, we'll use a placeholder that gets resolved later
+        instructions.append(('STORE_RETURN_ADDR', 0, 0, 'SPECIAL'))
     
-    # Jump to function
+    # Jump to function - add 1 to the target address
     jt = JUMP_TYPES.get(jump_type, 0) if jump_type else 0
-    instructions.append((key, jt, target_addr & 0xFF, OPCODES['JUMP']))
+    instructions.append((key, jt, (target_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     return instructions
 
@@ -690,7 +759,7 @@ def parse_if_condition(condition_str):
     
     raise ValueError(f"Invalid if condition: {condition_str}")
 
-def generate_if_instructions(if_line, then_instructions, else_instructions, labels, current_address):
+def generate_if_instructions(if_line, then_instructions, else_instructions, labels, instruction_address):
     """Generate instructions for if statement"""
     instructions = []
     
@@ -752,116 +821,116 @@ def generate_if_instructions(if_line, then_instructions, else_instructions, labe
         instruction_count += 1  # Jump to then
         instruction_count += 1  # Jump to else (unconditional)
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['ZERO'], then_addr & 0xFF, OPCODES['JUMP']))
-        instructions.append((0, JUMP_TYPES[None], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['ZERO'], (then_addr + 1) & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES[None], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     elif op == '!=':
         # Jump to else if zero (equal), fall through to then if not equal
         instruction_count += 1  # Jump to else
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['ZERO'], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['ZERO'], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block (fall through)
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     elif op == '<':
         # Jump to then if carry (left < right), otherwise fall through to else
         instruction_count += 1  # Jump to then
         instruction_count += 1  # Jump to else (unconditional)
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['CARRY'], then_addr & 0xFF, OPCODES['JUMP']))
-        instructions.append((0, JUMP_TYPES[None], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['CARRY'], (then_addr + 1) & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES[None], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     elif op == '>=':
         # Jump to else if carry (left < right), fall through to then if not
         instruction_count += 1  # Jump to else
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['CARRY'], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['CARRY'], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block (fall through)
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     elif op == '>':
         # left > right means NOT(left <= right) means NOT(left < right OR left == right)
@@ -869,30 +938,30 @@ def generate_if_instructions(if_line, then_instructions, else_instructions, labe
         instruction_count += 1  # Jump to else on zero
         instruction_count += 1  # Jump to else on carry
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['ZERO'], else_addr & 0xFF, OPCODES['JUMP']))
-        instructions.append((0, JUMP_TYPES['CARRY'], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['ZERO'], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['CARRY'], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block (fall through)
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     elif op == '<=':
         # left <= right means left < right OR left == right
@@ -901,31 +970,31 @@ def generate_if_instructions(if_line, then_instructions, else_instructions, labe
         instruction_count += 1  # Jump to then on carry
         instruction_count += 1  # Jump to else (unconditional)
         
-        then_addr = current_address + instruction_count
+        then_addr = instruction_address + instruction_count
         labels[then_label] = then_addr
         
         instruction_count += len(then_instructions)
         if else_instructions:
             instruction_count += 1  # Jump over else block
         
-        else_addr = current_address + instruction_count
+        else_addr = instruction_address + instruction_count
         labels[else_label] = else_addr
         
         instruction_count += len(else_instructions)
-        end_addr = current_address + instruction_count
+        end_addr = instruction_address + instruction_count
         labels[end_label] = end_addr
         
         # Generate the actual jump instructions
-        instructions.append((0, JUMP_TYPES['ZERO'], then_addr & 0xFF, OPCODES['JUMP']))
-        instructions.append((0, JUMP_TYPES['CARRY'], then_addr & 0xFF, OPCODES['JUMP']))
-        instructions.append((0, JUMP_TYPES[None], else_addr & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['ZERO'], (then_addr + 1) & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES['CARRY'], (then_addr + 1) & 0xFF, OPCODES['JUMP']))
+        instructions.append((0, JUMP_TYPES[None], (else_addr + 1) & 0xFF, OPCODES['JUMP']))
         
         # Then block
         instructions.extend(then_instructions)
         
         # Jump over else block
         if else_instructions:
-            instructions.append((0, JUMP_TYPES[None], end_addr & 0xFF, OPCODES['JUMP']))
+            instructions.append((0, JUMP_TYPES[None], (end_addr + 1) & 0xFF, OPCODES['JUMP']))
     
     # Else block (if it exists)
     if else_instructions:
@@ -938,14 +1007,12 @@ def assemble(filepath):
         lines = f.readlines()
 
     # First pass to identify functions and fake functions only
-    functions, fake_functions = first_pass(lines)
+    functions, fake_functions, functions_with_return = first_pass(lines)
     
-
-
-    # Initialize label tracking
+    # Initialize instruction address tracking
     labels = {}
     line_labels = {}  # For L1, L2, etc.
-    current_address = 0  # Track current ROM address during instruction emission
+    instruction_address = 0  # Track actual instruction addresses (not source line addresses)
     
     # Initialize call stack pointer
     call_stack_ptr = {'current': STACK_START}
@@ -996,58 +1063,85 @@ def assemble(filepath):
         else:
             main_lines.append(line)
     
-    # Process main program first to get instruction count before HALT
+    # Process main program with proper instruction address tracking
     main_instrs = []
     # Start with 2 NOPs as per original code
     main_instrs.append((0, 0, 0, OPCODES['NOP']))
     main_instrs.append((0, 0, 0, OPCODES['NOP']))
-    current_address = 2  # Account for the 2 initial NOPs
+    instruction_address = 2  # Account for the 2 initial NOPs
 
-    # First pass: Collect all labels and their addresses
+    # First pass: Create line labels for ALL source lines and collect labels with their instruction addresses
+    temp_address = instruction_address
+    in_main_program = True
+    current_function_start = None
+    
+    # Create line labels for ALL source lines (L1, L2, etc.) - this must cover the entire file
     for i, line in enumerate(lines):
         clean_line = re.sub(r'//.*', '', line).strip()
         
-        # Create line labels (L1, L2, etc.) for ALL source lines, mapping to current ROM address
-        line_labels[f'L{i+1}'] = current_address
+        # Assign line label to current instruction address (for lines that will generate instructions)
+        if clean_line and not clean_line.endswith(': fake'):
+            # For lines that generate instructions, assign the line label to the current address
+            if not ':' in clean_line or (':' in clean_line and clean_line.split(':', 1)[1].strip()):
+                # This line will generate an instruction, so assign the line label
+                line_labels[f'L{i+1}'] = temp_address
+        else:
+            # For empty lines or comments, assign the line label to current address (no instruction will be generated)
+            line_labels[f'L{i+1}'] = temp_address
         
-        if not clean_line:
-            continue
-        
-        # Check if we've hit a function definition - if so, stop processing main program
-        if ':' in clean_line:
-            label_part = clean_line.split(':')[0].strip()
-            
-            # Skip function definitions (they're handled separately)
-            if label_part.startswith('[') and label_part.endswith(']'):
-                func_name = label_part[1:-1].upper()
-                if func_name in functions:
-                    # We've hit a real function, stop processing main program
-                    break
+        # Only increment address for lines that generate actual instructions
+        if clean_line and not clean_line.endswith(': fake'):
+            # Check if this is a label definition
+            if ':' in clean_line:
+                label_part = clean_line.split(':')[0].strip()
+                rest_of_line = clean_line.split(':', 1)[1].strip().upper() if len(clean_line.split(':', 1)) > 1 else ''
+                
+                # Skip fake functions
+                if rest_of_line == 'FAKE':
+                    continue
+                    
+                # Check if this is a function definition
+                is_function_def = ((label_part.startswith('[') and label_part.endswith(']') and label_part[1:-1].upper() in functions) or
+                                 label_part.upper() in functions)
+                
+                if is_function_def:
+                    in_main_program = False
+                    current_function_start = temp_address
+                
+                # Labels should point to the next instruction that will be executed
+                # We need to find where the next actual instruction will be placed
+                next_instruction_addr = temp_address
+                
+                # Look ahead to find the next line that generates an instruction
+                for j in range(i + 1, len(lines)):
+                    next_line = re.sub(r'//.*', '', lines[j]).strip()
+                    if next_line and not next_line.endswith(': fake'):
+                        # Check if this is another label definition
+                        if ':' in next_line:
+                            next_label_part = next_line.split(':')[0].strip()
+                            next_rest_of_line = next_line.split(':', 1)[1].strip().upper() if len(next_line.split(':', 1)) > 1 else ''
+                            if next_rest_of_line == 'FAKE':
+                                continue
+                            # If it's another label, continue looking (labels don't increment address)
+                            continue
+                        else:
+                            # Found the next actual instruction
+                            break
+                
+                # Record all labels and their instruction addresses
+                if label_part.startswith('[') and label_part.endswith(']'):
+                    labels[label_part[1:-1].upper()] = next_instruction_addr
+                else:
+                    labels[label_part.upper()] = next_instruction_addr
+                
+                # Don't increment temp_address for label definitions - the next instruction will use this address
                 continue
             
-            # Check if it's a fake function without brackets (label: fake)
-            rest_of_line = clean_line.split(':', 1)[1].strip().upper()
-            if rest_of_line == 'FAKE':
-                continue
-            
-            # Check if this is a function (already detected in first pass)
-            func_name = label_part.upper()
-            if func_name in functions:
-                # We've hit a real function, stop processing main program
-                break
-            
-            # Regular label - assign current ROM address
-            labels[label_part.upper()] = current_address
-            continue
-        
-        # Count instructions that this line will generate to update current_address
-        instruction_increment = count_instruction_increment(clean_line, fake_functions)
-        current_address += instruction_increment
+            # Count actual instruction increments
+            instruction_increment = count_instruction_increment(clean_line, fake_functions, functions_with_return)
+            temp_address += instruction_increment
     
-    # Reset current_address for second pass
-    current_address = 2  # Account for the 2 initial NOPs
-    
-    # Second pass: Generate instructions
+    # Second pass: Generate instructions for main program
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -1060,25 +1154,16 @@ def assemble(filepath):
         # Check if we've hit a function definition - if so, stop processing main program
         if ':' in clean_line:
             label_part = clean_line.split(':')[0].strip()
+            rest_of_line = clean_line.split(':', 1)[1].strip().upper() if len(clean_line.split(':', 1)) > 1 else ''
             
-            # Skip function definitions (they're handled separately)
-            if label_part.startswith('[') and label_part.endswith(']'):
-                func_name = label_part[1:-1].upper()
-                if func_name in functions:
-                    # We've hit a real function, stop processing main program
-                    break
-                i += 1
-                continue
-            
-            # Check if it's a fake function without brackets (label: fake)
-            rest_of_line = clean_line.split(':', 1)[1].strip().upper()
+            # Skip fake functions
             if rest_of_line == 'FAKE':
                 i += 1
                 continue
-            
-            # Check if this is a function (already detected in first pass)
-            func_name = label_part.upper()
-            if func_name in functions:
+                
+            # Skip function definitions (they're handled separately)
+            if ((label_part.startswith('[') and label_part.endswith(']') and label_part[1:-1].upper() in functions) or
+                label_part.upper() in functions):
                 # We've hit a real function, stop processing main program
                 break
             
@@ -1155,9 +1240,9 @@ def assemble(filepath):
             
             # Generate the if statement instructions
             try:
-                if_instrs = generate_if_instructions(if_line, parsed_then, parsed_else, labels, current_address)
+                if_instrs = generate_if_instructions(if_line, parsed_then, parsed_else, labels, instruction_address)
                 main_instrs.extend(if_instrs)
-                current_address += len(if_instrs)
+                instruction_address += len(if_instrs)
             except ValueError as e:
                 print(f"Error generating IF statement: {e}")
                 sys.exit(1)
@@ -1176,34 +1261,36 @@ def assemble(filepath):
                     if func_name and func_name in fake_functions:
                         # Expand fake function inline
                         # Mark the start position for potential recursive jumps
-                        labels[func_name] = current_address
+                        labels[func_name] = instruction_address
                         
                         expanded = expand_fake_function(fake_functions[func_name]['instructions'], 
-                                                     labels, functions, line_labels, call_stack_ptr, fake_functions)
+                                                     labels, functions, line_labels, call_stack_ptr, fake_functions, functions_with_return)
                         main_instrs.extend(expanded)
-                        current_address += len(expanded)
+                        instruction_address += len(expanded)
                     else:
-                        # Regular function call - store location for return address calculation
-                        call_location = current_address
-                        
-                        # Store return address (will be resolved later)
-                        main_instrs.append(('STORE_RETURN_ADDR', call_location, 0, 'SPECIAL'))
-                        current_address += 2  # STORE_RETURN_ADDR generates 2 instructions
+                        # Regular function call - only use D register if function has RETURN
+                        if func_name in functions_with_return:
+                            # Function has RETURN - store location for return address calculation
+                            call_location = instruction_address
+                            
+                            # Store return address (will be resolved later)
+                            main_instrs.append(('STORE_RETURN_ADDR', call_location, 0, 'SPECIAL'))
+                            instruction_address += 2  # STORE_RETURN_ADDR generates 2 instructions
                         
                         # Jump to function (store function name for later resolution)
                         jt = JUMP_TYPES.get(jump_type, 0) if jump_type else 0
                         main_instrs.append((key, jt, func_name, OPCODES['JUMP']))  # Store function name
-                        current_address += 1
+                        instruction_address += 1
                 elif result[0] in ['IF_STATEMENT', 'ELSE', 'END']:
                     # These should have been handled above, skip them
                     pass
                 else:
                     main_instrs.append(result)
-                    # Increment current_address based on instruction type
+                    # Increment instruction_address based on instruction type
                     if result and len(result) == 4 and result[0] == 'RETURN':
-                        current_address += 2  # RETURN generates 2 instructions
+                        instruction_address += 2  # RETURN generates 2 instructions
                     else:
-                        current_address += 1  # Most instructions generate 1 instruction
+                        instruction_address += 1  # Most instructions generate 1 instruction
         except ValueError as e:
             print(f"Error: {e}")
             sys.exit(1)
@@ -1213,76 +1300,25 @@ def assemble(filepath):
     # Ensure program ends with HALT
     if not main_instrs or main_instrs[-1][3] != OPCODES['HALT']:
         main_instrs.append((0, 0, 0, OPCODES['HALT']))
-        current_address += 1
+        instruction_address += 1
     
-    # Now calculate function addresses (they start after HALT)
-    # Functions are placed after the main program
-    current_func_addr = current_address
-    
-    # Update function addresses by processing function lines
-    for func_name in function_lines.keys():
-        if func_name not in fake_functions:
-            functions[func_name] = current_func_addr
-            
-            # Process function lines to track addresses within the function
-            for line in function_lines[func_name]:
-                clean_line = re.sub(r'//.*', '', line).strip()
-                
-                if not clean_line:
-                    continue
-                    
-                # Check if this line defines a label within the function
-                if ':' in clean_line:
-                    label_part = clean_line.split(':')[0].strip()
-                    
-                    # Skip function definitions
-                    if label_part.startswith('[') and label_part.endswith(']'):
-                        continue
-                    
-                    # Check if it's a fake function
-                    rest_of_line = clean_line.split(':', 1)[1].strip().upper()
-                    if rest_of_line == 'FAKE':
-                        continue
-                    
-                    # Regular label within function - assign current function address
-                    labels[label_part.upper()] = current_func_addr
-                    continue
-                
-                # Count instructions that this line will generate
-                if clean_line.upper() == 'RETURN':
-                    current_func_addr += 2  # RETURN generates 2 instructions
-                elif clean_line.startswith('JUMP') and '[' in clean_line and ']' in clean_line:
-                    # Function call within function
-                    func_name_match = re.search(r'\[([^\]]+)\]', clean_line)
-                    if func_name_match:
-                        called_func_name = func_name_match.group(1).upper()
-                        if called_func_name in fake_functions:
-                            # Fake function call - count its instructions
-                            current_func_addr += len(fake_functions[called_func_name]['instructions'])
-                        else:
-                            # Real function call - generates 2 instructions (store return + jump)
-                            current_func_addr += 2
-                    else:
-                        current_func_addr += 1
-                else:
-                    current_func_addr += 1
-    
-    # Print label table for debugging
-    print("LABEL TABLE:")
-    for label, addr in labels.items():
-        print(f"{label}: {addr}")
+    # The labels and functions should already be set from the first pass above
+    # Now we just need to ensure function addresses are properly stored
+    for func_name in functions:
+        if func_name in labels:
+            functions[func_name] = labels[func_name]
     
     # Now resolve function call addresses in main program
     for i, instr in enumerate(main_instrs):
         if len(instr) == 4 and instr[3] == OPCODES['JUMP'] and isinstance(instr[2], str):  # Function call jump with function name
             func_name = instr[2]
             if func_name in functions and functions[func_name] is not None:
-                # Update the jump address
-                main_instrs[i] = (instr[0], instr[1], functions[func_name] & 0xFF, instr[3])
+                # Update the jump address to the resolved instruction address
+                main_instrs[i] = (instr[0], instr[1], (functions[func_name] + 1) & 0xFF, instr[3])
     
     # Add functions after main program
     function_instrs = []
-    function_current_address = len(main_instrs)  # Functions start after main program
+    function_instruction_address = len(main_instrs)  # Functions start after main program
     
     for func_name, func_lines in function_lines.items():
         if func_name not in fake_functions:  # Don't add fake functions to final code
@@ -1293,7 +1329,7 @@ def assemble(filepath):
                         if result[0] == 'RETURN':
                             # Generate return instructions - will be resolved later
                             function_instrs.append(('RETURN', 0, 0, 'SPECIAL'))
-                            function_current_address += 2  # RETURN generates 2 instructions
+                            function_instruction_address += 2  # RETURN generates 2 instructions
                         elif result[0] == 'FUNCTION_CALL':
                             # Handle function call within function
                             _, func_name, _, jump_type, key = result
@@ -1301,27 +1337,29 @@ def assemble(filepath):
                             if func_name and func_name in fake_functions:
                                 # Expand fake function inline
                                 expanded = expand_fake_function(fake_functions[func_name]['instructions'], 
-                                                             labels, functions, line_labels, call_stack_ptr, fake_functions)
+                                                             labels, functions, line_labels, call_stack_ptr, fake_functions, functions_with_return)
                                 function_instrs.extend(expanded)
-                                function_current_address += len(expanded)
+                                function_instruction_address += len(expanded)
                             else:
-                                # Regular function call
-                                call_location = function_current_address
-                                
-                                # Store return address (will be resolved later)
-                                function_instrs.append(('STORE_RETURN_ADDR', call_location, 0, 'SPECIAL'))
-                                function_current_address += 2  # STORE_RETURN_ADDR generates 2 instructions
+                                # Regular function call - only use D register if function has RETURN
+                                if func_name in functions_with_return:
+                                    # Function has RETURN - store location for return address calculation
+                                    call_location = function_instruction_address
+                                    
+                                    # Store return address (will be resolved later)
+                                    function_instrs.append(('STORE_RETURN_ADDR', call_location, 0, 'SPECIAL'))
+                                    function_instruction_address += 2  # STORE_RETURN_ADDR generates 2 instructions
                                 
                                 # Jump to function
                                 jt = JUMP_TYPES.get(jump_type, 0) if jump_type else 0
                                 if func_name in functions and functions[func_name] is not None:
-                                    function_instrs.append((key, jt, functions[func_name] & 0xFF, OPCODES['JUMP']))
+                                    function_instrs.append((key, jt, (functions[func_name] + 1) & 0xFF, OPCODES['JUMP']))
                                 else:
                                     function_instrs.append((key, jt, func_name, OPCODES['JUMP']))  # Store function name for later resolution
-                                function_current_address += 1
+                                function_instruction_address += 1
                         else:
                             function_instrs.append(result)
-                            function_current_address += 1
+                            function_instruction_address += 1
                 except ValueError as e:
                     print(f"Error in function {func_name}: {e}")
                     sys.exit(1)
@@ -1331,8 +1369,8 @@ def assemble(filepath):
         if len(instr) == 4 and instr[3] == OPCODES['JUMP'] and isinstance(instr[2], str):  # Function call jump with function name
             func_name = instr[2]
             if func_name in functions and functions[func_name] is not None:
-                # Update the jump address
-                function_instrs[i] = (instr[0], instr[1], functions[func_name] & 0xFF, instr[3])
+                # Update the jump address to the resolved instruction address
+                function_instrs[i] = (instr[0], instr[1], (functions[func_name] + 1) & 0xFF, instr[3])
     
     # Combine main program and functions
     all_instrs = main_instrs + function_instrs
@@ -1343,8 +1381,8 @@ def assemble(filepath):
         if len(instr) > 3 and instr[3] == 'SPECIAL':
             if instr[0] == 'STORE_RETURN_ADDR':
                 # Store return address (instruction after the jump)
-                call_location = instr[1]
-                return_addr = call_location + 2  # After STORE_RETURN_ADDR and JUMP
+                # The return address should be the next instruction after this function call
+                return_addr = len(resolved_instrs) + 2  # After SET D and PUSH RETURN D
                 
                 # Generate: SET D TO return_addr, PUSH RETURN D
                 resolved_instrs.append((0, REGISTERS['D'], return_addr & 0xFF, OPCODES['SET']))
@@ -1380,13 +1418,158 @@ def assemble(filepath):
     for instr in resolved_instrs:
         if len(instr) == 4:
             data3, data2, data1, opcode = instr
+            # Validate data fields are within valid ranges
+            if not (0 <= data3 <= 255):
+                raise ValueError(f"DATA3 field out of range (0-255): {data3} in instruction {instr}")
+            if not (0 <= data2 <= 255):
+                raise ValueError(f"DATA2 field out of range (0-255): {data2} in instruction {instr}")
+            if not (0 <= data1 <= 255):
+                raise ValueError(f"DATA1 field out of range (0-255): {data1} in instruction {instr}")
+            if not (0 <= opcode <= 255):
+                raise ValueError(f"OPCODE field out of range (0-255): {opcode} in instruction {instr}")
+            
             rom1.append(f"{data1:08b}{opcode:08b}")
             rom2.append(f"{data3:08b}{data2:08b}")
         else:
-            print(f"Warning: Instruction with unexpected format: {instr}")
-            # Handle malformed instruction
-            rom1.append("0000000000000000")
-            rom2.append("0000000000000000")
+            raise ValueError(f"ERROR: Malformed instruction detected: {instr}. All instructions must be 4-tuples (data3, data2, data1, opcode).")
+    
+    
+        # Find the last non-NOP instruction
+    last_real_instruction = len(rom1) - 1
+    while last_real_instruction >= 0:
+        opcode = int(rom1[last_real_instruction][8:], 2)
+        if opcode != OPCODES['NOP']:
+            break
+        last_real_instruction -= 1
+    
+    # Write to outputBinary.txt with ROM2 and ROM1 combined on each line, plus human-readable instruction
+    with open("outputBinary.txt", "w") as f:
+        for i, (r2, r1) in enumerate(zip(rom2, rom1)):
+            # Skip trailing NOPs
+            if i > last_real_instruction:
+                break
+                
+            # Parse the binary data back into components
+            data3 = int(r2[:8], 2)
+            data2 = int(r2[8:], 2)
+            data1 = int(r1[:8], 2)
+            opcode = int(r1[8:], 2)
+            
+            # Generate human-readable instruction based on opcode
+            instruction = ""
+            if opcode == OPCODES['NOP']:
+                instruction = "NOP"
+            elif opcode == OPCODES['HALT']:
+                instruction = "HALT"
+            elif opcode == OPCODES['ALU']:
+                # Extract components from data fields
+                reg1_nibble = (data3 >> 4) & 0xF
+                op_code = data3 & 0xF
+                reg2_type = (data2 >> 6) & 0x3
+                reg1_type = (data2 >> 4) & 0x3
+                out_reg = data2 & 0xF
+                reg2 = (data1 >> 4) & 0xF
+                reg1 = data1 & 0xF
+                
+                # Get register names
+                reg_names = {v: k for k, v in REGISTERS.items()}
+                out_reg_name = reg_names.get(out_reg, f"R{out_reg}")
+                
+                # Get operation name
+                op_names = {v: k for k, v in ALU_OPS.items()}
+                op_name = op_names.get(op_code, f"OP{op_code}")
+                
+                # Format operands based on type
+                def format_operand(reg_val, reg_type):
+                    if reg_type == VALUE_TYPES['REGISTER']:
+                        return reg_names.get(reg_val, f"R{reg_val}")
+                    elif reg_type == VALUE_TYPES['BUILTIN']:
+                        return str(reg_val)
+                    elif reg_type == VALUE_TYPES['RAM']:
+                        return f"[{reg_val}]"
+                    return f"?{reg_val}"
+                
+                reg1_str = format_operand(reg1, reg1_type)
+                reg2_str = format_operand(reg2, reg2_type)
+                
+                instruction = f"{out_reg_name} = {reg1_str} {op_name} {reg2_str}"
+            elif opcode == OPCODES['STORE']:
+                reg = data2
+                addr = data1
+                reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                instruction = f"STORE {reg_name} into [{addr}]"
+            elif opcode == OPCODES['LOAD']:
+                reg = data2
+                addr = data1
+                reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                instruction = f"LOAD [{addr}] into {reg_name}"
+            elif opcode == OPCODES['SET']:
+                reg = data2
+                value = data1
+                reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                instruction = f"SET {reg_name} to {value}"
+            elif opcode == OPCODES['JUMP']:
+                usereg = (data3 >> 4) & 0x1
+                key = data3 & 0xF
+                reg = (data2 >> 4) & 0xF
+                jmptype = data2 & 0xF
+                addr = data1
+                
+                # Get jump type name
+                jmp_types = {v: k for k, v in JUMP_TYPES.items()}
+                jmp_type_name = jmp_types.get(jmptype, "")
+                
+                if usereg:
+                    reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                    instruction = f"JUMP {reg_name}"
+                else:
+                    instruction = f"JUMP {addr}"
+                
+                if jmp_type_name:
+                    instruction += f" if {jmp_type_name}"
+                
+                if jmptype == JUMP_TYPES['KEY']:
+                    key_names = {v: k for k, v in KEYS.items()}
+                    key_name = key_names.get(key, f"KEY{key}")
+                    instruction += f" {key_name}"
+            elif opcode == OPCODES['DRAW']:
+                b = data3 & 0xF
+                r = (data2 >> 4) & 0xF
+                g = data2 & 0xF
+                y = (data1 >> 4) & 0xF
+                x = data1 & 0xF
+                instruction = f"DRAW {x} {y} {r} {g} {b}"
+            elif opcode == OPCODES['CLEARSCREEN']:
+                instruction = "CLEARSCREEN"
+            elif opcode == OPCODES['REFRESHSCREEN']:
+                instruction = "REFRESHSCREEN"
+            elif opcode == OPCODES['RANDOM']:
+                reg = data2
+                reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                instruction = f"RANDOM {reg_name}"
+            elif opcode == OPCODES['STACK']:
+                stack_op = (data3 >> 2) & 0x3
+                stack_type = data3 & 0x3
+                reg = data2 & 0xF
+                value = data1
+                
+                # Get stack operation and type names
+                stack_ops = {v: k for k, v in STACK_OPS.items()}
+                stack_types = {v: k for k, v in STACK_TYPES.items()}
+                
+                op_name = stack_ops.get(stack_op, f"OP{stack_op}")
+                stack_name = stack_types.get(stack_type, f"STACK{stack_type}")
+                
+                if reg == 0xF:  # No register, use value
+                    instruction = f"{op_name} {stack_name} {value}"
+                else:
+                    reg_name = next((k for k, v in REGISTERS.items() if v == reg), f"R{reg}")
+                    instruction = f"{op_name} {stack_name} {reg_name}"
+            else:
+                instruction = f"UNKNOWN ({opcode})"
+            
+            # Write binary data and instruction
+            f.write(f"{r2}{r1}  // {i:03d}: {instruction}\n")
 
     # Output to clipboard
     pyperclip.copy("\n".join(rom1))
@@ -1398,4 +1581,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         assemble(sys.argv[1])
     else:
-        assemble("C:/Users/kythe/OneDrive/Documents/GitHub/My-DLS/Assembler/code.asm")
+        assemble("C:/Users/kythe/Desktop/My-DLS/Assembler/code.asm")

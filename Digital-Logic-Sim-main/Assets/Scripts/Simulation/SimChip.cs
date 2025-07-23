@@ -114,6 +114,60 @@ namespace DLS.Simulation
 				InternalState[0] = 1; // First tick starts as true/on
 				InternalState[1] = 0; // Previous clock state starts low
 			}
+			else if (ChipType is ChipType.B_CPU)
+			{
+				// CPU Internal State Layout:
+				// [0-24] = Registers A-Y (25 registers)
+				// [25] = Program Counter
+				// [26] = Return Stack Pointer
+				// [27] = Function Parameters Stack Pointer  
+				// [28] = General Purpose Stack Pointer
+				// [29-284] = RAM (256 bytes)
+				// [285-540] = Return Stack (256 bytes)
+				// [541-796] = Function Parameters Stack (256 bytes)
+				// [797-1052] = General Purpose Stack (256 bytes)
+				// [1053] = Previous Clock State
+				// [1054] = Previous Run State
+				// [1055] = Previous Step State
+				// [1056] = CPU Flags (bit 0: carry, bit 1: zero, bit 2: halt)
+				// [1057] = Screen X coordinate
+				// [1058] = Screen Y coordinate
+				InternalState = new ulong[1059];
+				
+				// Initialize registers to 0
+				for (int i = 0; i < 25; i++)
+				{
+					InternalState[i] = 0;
+				}
+				
+				// Initialize program counter and stack pointers
+				InternalState[25] = 0; // Program Counter
+				InternalState[26] = 0; // Return Stack Pointer
+				InternalState[27] = 0; // Function Parameters Stack Pointer
+				InternalState[28] = 0; // General Purpose Stack Pointer
+				
+				// Initialize RAM to random values
+				Span<byte> randomBytes = stackalloc byte[4];
+				for (int i = 29; i < 285; i++)
+				{
+					Simulator.rng.NextBytes(randomBytes);
+					InternalState[i] = BitConverter.ToUInt32(randomBytes);
+				}
+				
+				// Initialize stacks to 0
+				for (int i = 285; i < 1053; i++)
+				{
+					InternalState[i] = 0;
+				}
+				
+				// Initialize control states
+				InternalState[1053] = 0; // Previous Clock State
+				InternalState[1054] = 0; // Previous Run State
+				InternalState[1055] = 0; // Previous Step State
+				InternalState[1056] = 0; // CPU Flags
+				InternalState[1057] = 0; // Screen X coordinate
+				InternalState[1058] = 0; // Screen Y coordinate
+			}
 			// Load in serialized persistent state (rom data, etc.)
 			else if (internalState is { Length: > 0 })
 			{

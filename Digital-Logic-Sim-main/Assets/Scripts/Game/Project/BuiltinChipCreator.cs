@@ -87,6 +87,8 @@ namespace DLS.Game
                                 CreateDecoder8Bit(),
                                 // ---- Utility ----
                                 CreateFirstTick(),
+                                // ---- CPU ----
+                                CreateBCPU(),
                                 // ---- Memory ----
                                 dev_CreateRAM_8(),
                                 CreateROM_8(),
@@ -937,6 +939,65 @@ namespace DLS.Game
 				Vector2 size = new(GridSize * 12, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
 
 				return CreateBuiltinChipDescription(ChipType.Division32, size, col, inputPins, outputPins);
+		}
+
+		static ChipDescription CreateBCPU()
+		{
+			Color col = new(0.3f, 0.3f, 0.8f); // Blue color for CPU
+
+			PinDescription[] inputPins =
+			{
+				CreatePinDescription("DATA3", 0, PinBitCount.Bit8),
+				CreatePinDescription("DATA2", 1, PinBitCount.Bit8),
+				CreatePinDescription("DATA1", 2, PinBitCount.Bit8),
+				CreatePinDescription("OPCODE", 3, PinBitCount.Bit8),
+				CreatePinDescription("CLOCK", 4, PinBitCount.Bit1),
+				CreatePinDescription("RUN", 5, PinBitCount.Bit1),
+				CreatePinDescription("STEP", 6, PinBitCount.Bit1)
+			};
+
+			PinDescription[] outputPins = {
+				// Screen outputs
+				CreatePinDescription("S ADDRESS", 7, PinBitCount.Bit8),
+				CreatePinDescription("S RED", 8, PinBitCount.Bit4),
+				CreatePinDescription("S GREEN", 9, PinBitCount.Bit4),
+				CreatePinDescription("S BLUE", 10, PinBitCount.Bit4),
+				CreatePinDescription("S WRITE", 11, PinBitCount.Bit1),
+				CreatePinDescription("S REFRESH", 12, PinBitCount.Bit1),
+				CreatePinDescription("S CLOCK", 13, PinBitCount.Bit1),
+				// Program counter
+				CreatePinDescription("PC ADDRESS", 14, PinBitCount.Bit8),
+				// Registers A-Y (25 registers)
+				CreatePinDescription("REG A", 15, PinBitCount.Bit8),
+				CreatePinDescription("REG B", 16, PinBitCount.Bit8),
+				CreatePinDescription("REG C", 17, PinBitCount.Bit8),
+				CreatePinDescription("REG D", 18, PinBitCount.Bit8),
+				CreatePinDescription("REG E", 19, PinBitCount.Bit8),
+				CreatePinDescription("REG F", 20, PinBitCount.Bit8),
+				CreatePinDescription("REG G", 21, PinBitCount.Bit8),
+				CreatePinDescription("REG H", 22, PinBitCount.Bit8),
+				CreatePinDescription("REG I", 23, PinBitCount.Bit8),
+				CreatePinDescription("REG J", 24, PinBitCount.Bit8),
+				CreatePinDescription("REG K", 25, PinBitCount.Bit8),
+				CreatePinDescription("REG L", 26, PinBitCount.Bit8),
+				CreatePinDescription("REG M", 27, PinBitCount.Bit8),
+				CreatePinDescription("REG N", 28, PinBitCount.Bit8),
+				CreatePinDescription("REG O", 29, PinBitCount.Bit8),
+				CreatePinDescription("REG P", 30, PinBitCount.Bit8),
+				CreatePinDescription("REG Q", 31, PinBitCount.Bit8),
+				CreatePinDescription("REG R", 32, PinBitCount.Bit8),
+				CreatePinDescription("REG S", 33, PinBitCount.Bit8),
+				CreatePinDescription("REG T", 34, PinBitCount.Bit8),
+				CreatePinDescription("REG U", 35, PinBitCount.Bit8),
+				CreatePinDescription("REG V", 36, PinBitCount.Bit8),
+				CreatePinDescription("REG W", 37, PinBitCount.Bit8),
+				CreatePinDescription("REG X", 38, PinBitCount.Bit8),
+				CreatePinDescription("REG Y", 39, PinBitCount.Bit8)
+			};
+
+			Vector2 size = new(GridSize * 16, SubChipInstance.MinChipHeightForPins(inputPins, outputPins));
+
+			return CreateBuiltinChipDescription(ChipType.B_CPU, size, col, inputPins, outputPins);
 		}
 
         }

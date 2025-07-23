@@ -76,6 +76,8 @@ namespace DLS.Description
 			{ ChipType.B_Decoder_8Bit, "B-DECODER-8" },
 			// ---- Utility ----
 			{ ChipType.B_FirstTick, "B-FIRST-TICK" },
+			// ---- CPU ----
+			{ ChipType.B_CPU, "B-CPU" },
 			// ---- Memory ----
 			{ ChipType.dev_Ram_8Bit, "dev.RAM-8" },
 			{ ChipType.Rom_256x16, $"ROM 256{mulSymbol}16" },

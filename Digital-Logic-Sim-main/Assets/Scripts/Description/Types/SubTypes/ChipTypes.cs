@@ -78,6 +78,9 @@ namespace DLS.Description
 		// ---- Utility ----
 		B_FirstTick,
 
+		// ---- CPU ----
+		B_CPU,
+
 		// ---- Memory ----
 		dev_Ram_8Bit,
 		Rom_256x16,
